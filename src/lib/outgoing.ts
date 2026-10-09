@@ -3,6 +3,7 @@ import type { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 import { getReplyContext } from "./mailbox";
 import { buildMime, encodeHeaderText, toBase64Url } from "./mime";
+import { toHtml, toPlainText } from "./rich-text";
 import type { Session } from "./session";
 
 // ~3 MB file → ~4 MB base64, under typical serverless request limits (Vercel: 4.5 MB).
@@ -33,7 +34,9 @@ export async function buildRawMessage(client: OAuth2Client, session: Session, in
     from,
     to: input.to,
     subject: input.subject,
-    body: input.body,
+    // The editor's light formatting (**bold**, links) goes out as HTML, with a plain-text fallback.
+    body: toPlainText(input.body),
+    html: toHtml(input.body),
     inReplyTo: reply?.messageId,
     references: reply?.references,
     attachment: input.attachment ? { filename: input.attachment.filename, mimeType: "application/pdf", base64: input.attachment.base64 } : null,

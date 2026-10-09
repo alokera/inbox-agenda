@@ -15,7 +15,10 @@ export interface MimeMessage {
   from?: string;
   to: string;
   subject: string;
+  /** Plain-text body (always sent, for mail apps that don't show HTML). */
   body: string;
+  /** Optional HTML version of the same body; sent as multipart/alternative. */
+  html?: string | null;
   inReplyTo?: string | null;
   references?: string | null;
   attachment?: Attachment | null;
@@ -55,14 +58,13 @@ export function buildMime(message: MimeMessage, boundary = `ia_${Math.random().t
     "MIME-Version: 1.0",
   ];
 
-  const textPart = [
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrap76(Buffer.from(message.body.replace(/\r?\n/g, "\r\n"), "utf8").toString("base64")),
-  ].join("\r\n");
+  const textPart = base64Part("text/plain; charset=UTF-8", message.body.replace(/\r?\n/g, "\r\n"));
+  // With HTML, the readable body is a multipart/alternative: mail apps show the richest version they support.
+  const bodyPart = message.html
+    ? multipart("alternative", `${boundary}_alt`, [textPart, base64Part("text/html; charset=UTF-8", message.html)])
+    : textPart;
 
-  if (!message.attachment) return [...headers, textPart].join("\r\n");
+  if (!message.attachment) return [...headers, bodyPart].join("\r\n");
 
   const filename = safeFilename(message.attachment.filename);
   const attachmentPart = [
@@ -73,17 +75,16 @@ export function buildMime(message: MimeMessage, boundary = `ia_${Math.random().t
     wrap76(message.attachment.base64.replace(/\s+/g, "")),
   ].join("\r\n");
 
-  return [
-    ...headers,
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    textPart,
-    `--${boundary}`,
-    attachmentPart,
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
+  return [...headers, multipart("mixed", boundary, [bodyPart, attachmentPart]), ""].join("\r\n");
+}
+
+function base64Part(contentType: string, content: string): string {
+  return [`Content-Type: ${contentType}`, "Content-Transfer-Encoding: base64", "", wrap76(Buffer.from(content, "utf8").toString("base64"))].join("\r\n");
+}
+
+/** A multipart entity: its own Content-Type header, then each part between boundaries. */
+function multipart(subtype: "mixed" | "alternative", boundary: string, parts: string[]): string {
+  return [`Content-Type: multipart/${subtype}; boundary="${boundary}"`, "", ...parts.flatMap((part) => [`--${boundary}`, part]), `--${boundary}--`].join("\r\n");
 }
 
 export function toBase64Url(mime: string): string {

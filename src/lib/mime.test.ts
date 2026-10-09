@@ -49,10 +49,31 @@ describe("buildMime", () => {
     const pdf = Buffer.from("%PDF-1.4 fake resume").toString("base64");
     const mime = buildMime({ to: "hr@acme.com", subject: "Application", body: "See attached", attachment: { filename: "Aalok Resume.pdf", mimeType: "application/pdf", base64: pdf } }, "BOUNDARY");
     expect(mime).toContain('Content-Type: multipart/mixed; boundary="BOUNDARY"');
+    expect(mime).not.toContain("multipart/alternative");
     expect(mime).toContain('Content-Disposition: attachment; filename="Aalok Resume.pdf"');
     expect(mime.trimEnd().endsWith("--BOUNDARY--")).toBe(true);
     expect(mime).toContain(pdf);
     expect(decodeTextPart(mime)).toBe("See attached");
+  });
+
+  it("sends text and HTML as alternatives, inside mixed when there's an attachment", () => {
+    const pdf = Buffer.from("%PDF").toString("base64");
+    const mime = buildMime({ to: "hr@acme.com", subject: "s", body: "Portfolio: x", html: "<strong>Portfolio:</strong> x", attachment: { filename: "r.pdf", mimeType: "application/pdf", base64: pdf } }, "B");
+    const mixed = mime.indexOf('multipart/mixed; boundary="B"');
+    const alternative = mime.indexOf('multipart/alternative; boundary="B_alt"');
+    expect(mixed).toBeGreaterThan(-1);
+    expect(alternative).toBeGreaterThan(mixed);
+    expect(mime.indexOf("text/plain")).toBeLessThan(mime.indexOf("text/html")); // plain first, richest last
+    expect(mime).toContain("--B_alt--");
+    expect(mime.trimEnd().endsWith("--B--")).toBe(true);
+    const htmlB64 = mime.split('Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n')[1].split("\r\n--")[0];
+    expect(Buffer.from(htmlB64.replace(/\r\n/g, ""), "base64").toString("utf8")).toBe("<strong>Portfolio:</strong> x");
+  });
+
+  it("uses multipart/alternative alone when there's HTML but no attachment", () => {
+    const mime = buildMime({ to: "a@b.co", subject: "s", body: "b", html: "<b>b</b>" }, "C");
+    expect(mime).toContain('multipart/alternative; boundary="C_alt"');
+    expect(mime).not.toContain("multipart/mixed");
   });
 
   it("wraps long base64 lines at 76 characters", () => {
