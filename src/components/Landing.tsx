@@ -27,21 +27,21 @@ export function Landing({ configured, error }: Props) {
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[32rem] w-[60rem] -translate-x-1/2 rounded-full bg-indigo-200/40 blur-3xl dark:bg-indigo-900/20" aria-hidden />
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[32rem] w-[60rem] -translate-x-1/2 rounded-full bg-blue-200/40 blur-3xl dark:bg-blue-900/20" aria-hidden />
 
       <header className="relative mx-auto flex w-full max-w-6xl items-center gap-2.5 px-6 py-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"><CalendarDays className="h-4 w-4" /></span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0b57d0] text-white shadow-sm shadow-[#0b57d0]/30"><CalendarDays className="h-4 w-4" /></span>
         <span className="font-semibold tracking-tight">InboxAgenda</span>
       </header>
 
       <main className="relative mx-auto grid w-full max-w-6xl flex-1 items-center gap-12 px-6 pb-16 pt-6 lg:grid-cols-2">
         <div className="space-y-8">
           <div className="space-y-5">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/70 px-3 py-1 text-xs font-medium text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white/70 px-3 py-1 text-xs font-medium text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
               <Sparkles className="h-3.5 w-3.5" />AI for your inbox and calendar
             </span>
             <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl dark:text-zinc-50">
-              Never miss an appointment <span className="text-indigo-600 dark:text-indigo-400">hiding in your inbox.</span>
+              Never miss an appointment <span className="text-[#0b57d0] dark:text-blue-400">hiding in your inbox.</span>
             </h1>
             <p className="max-w-xl text-lg text-zinc-600 dark:text-zinc-400">
               Sign in with Google to see your important email and a single agenda of everything you&apos;ve got coming up,
@@ -66,7 +66,7 @@ export function Landing({ configured, error }: Props) {
           <ul className="grid max-w-xl gap-4 sm:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, text }) => (
               <li key={title} className="space-y-1.5">
-                <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <Icon className="h-5 w-5 text-[#0b57d0] dark:text-blue-400" />
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</p>
                 <p className="text-xs leading-relaxed text-zinc-500">{text}</p>
               </li>
@@ -100,7 +100,7 @@ function Privacy({ icon: Icon, children }: { icon: LucideIcon; children: React.R
 /** Static illustration of the agenda, so visitors see what they'll get. */
 function Preview() {
   const rows = [
-    { time: "10:00", title: "Product sync", meta: "Google Calendar", accent: "bg-indigo-500" },
+    { time: "10:00", title: "Product sync", meta: "Google Calendar", accent: "bg-blue-500" },
     { time: "16:00", title: "Dentist – Dr. Rao", meta: "Found in email", accent: "bg-amber-400", missing: true },
     { time: "19:30", title: "Dinner reservation, Olive", meta: "Found in email", accent: "bg-emerald-500" },
   ];

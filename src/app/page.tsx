@@ -22,7 +22,7 @@ export default function Home() {
       .then((res) => res.json())
       .catch(() => ({ user: null, configured: { google: false, ai: false } }))
       .then((data: Me) => {
-        if (data.user) return router.replace("/important");
+        if (data.user) return router.replace("/inbox");
         setError(callbackError);
         setMe(data);
       });

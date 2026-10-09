@@ -101,7 +101,7 @@ export function AgendaView() {
               type="button"
               onClick={scan}
               disabled={scanning}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-500 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#0b57d0] px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-[#0b57d0]/20 hover:bg-[#0a4fbd] disabled:opacity-60"
             >
               {scanning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {scanning ? "Scanning…" : items ? "Scan again" : "Scan my inbox"}
@@ -117,7 +117,7 @@ export function AgendaView() {
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
               <div
-                className={`h-full rounded-full bg-indigo-600 transition-all duration-300 ${progress ? "" : "w-1/3 animate-pulse"}`}
+                className={`h-full rounded-full bg-[#0b57d0] transition-all duration-300 ${progress ? "" : "w-1/3 animate-pulse"}`}
                 style={progress ? { width: `${(progress.done / Math.max(1, progress.total)) * 100}%` } : undefined}
               />
             </div>
@@ -170,7 +170,7 @@ export function AgendaView() {
         {!items && !scanning && (
           <div className="rounded-2xl border border-dashed border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-900/50">
             <EmptyState icon={CalendarSearch} title="Build your agenda" description="Scan your recent email. AI finds meetings, interviews, bookings and appointments, and compares them with your calendar.">
-              <button type="button" onClick={scan} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+              <button type="button" onClick={scan} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#0b57d0] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a4fbd]">
                 <Sparkles className="h-4 w-4" />Scan my inbox
               </button>
             </EmptyState>

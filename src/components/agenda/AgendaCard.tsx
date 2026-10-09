@@ -11,7 +11,7 @@ export function AgendaCard({ item, showEmailLink = true }: { item: AgendaItem; s
   const start = new Date(item.start);
   const end = item.end ? new Date(item.end) : null;
   const cancelled = item.status === "cancelled";
-  const accent = cancelled ? "bg-zinc-300 dark:bg-zinc-700" : item.missingFromCalendar ? "bg-amber-400" : item.source === "calendar" ? "bg-indigo-500" : "bg-emerald-500";
+  const accent = cancelled ? "bg-zinc-300 dark:bg-zinc-700" : item.missingFromCalendar ? "bg-amber-400" : item.source === "calendar" ? "bg-blue-500" : "bg-emerald-500";
 
   return (
     <li className="group relative flex overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
@@ -77,7 +77,7 @@ function ActionLink({ href, title, primary, children }: { href: string; title?: 
       target="_blank"
       rel="noopener noreferrer"
       className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition ${
-        primary ? "bg-indigo-600 text-white hover:bg-indigo-500" : "text-zinc-600 ring-1 ring-inset ring-zinc-200 hover:bg-zinc-50 dark:text-zinc-300 dark:ring-zinc-700 dark:hover:bg-zinc-800"
+        primary ? "bg-[#0b57d0] text-white hover:bg-[#0a4fbd]" : "text-zinc-600 ring-1 ring-inset ring-zinc-200 hover:bg-zinc-50 dark:text-zinc-300 dark:ring-zinc-700 dark:hover:bg-zinc-800"
       }`}
     >
       {children}

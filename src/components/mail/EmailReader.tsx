@@ -1,25 +1,31 @@
 "use client";
 
-import { ArrowLeft, Bookmark, CalendarSearch, ExternalLink, LoaderCircle, Paperclip, Sparkles, Star } from "lucide-react";
+import { ArrowLeft, Bookmark, CalendarSearch, ChevronLeft, ChevronRight, ExternalLink, Forward, LoaderCircle, Paperclip, Reply, Sparkles, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
-import { formatFullDate, splitLinks } from "@/lib/ui-format";
+import { formatReaderDate, recipientsLabel, shortNames, splitLinks } from "@/lib/ui-format";
 import type { AgendaItem, EmailDetail } from "@/lib/types";
 import { AgendaCard } from "../agenda/AgendaCard";
 import { Avatar } from "../ui/Avatar";
 import { EmptyState } from "../ui/EmptyState";
+import { IconButton } from "../ui/IconButton";
 import { Skeleton } from "../ui/Skeleton";
 import { useUser } from "../UserContext";
 
 interface Props {
   emailId: string;
+  /** "3 of 2,345" in the toolbar, when the email is in the loaded page. */
+  position: { index: number; total: number } | null;
   onBack: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
 }
 
-/** Keyed by email id by its parent, so all state resets when another email is opened. */
-export function EmailReader({ emailId, onBack }: Props) {
+/** A Gmail-style opened message. Keyed by email id, so all state resets when another email opens. */
+export function EmailReader({ emailId, position, onBack, onPrevious, onNext }: Props) {
   const user = useUser();
   const [email, setEmail] = useState<EmailDetail | null>(null);
+  const [openedAt, setOpenedAt] = useState(new Date(0));
   const [error, setError] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<AgendaItem[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -28,7 +34,11 @@ export function EmailReader({ emailId, onBack }: Props) {
   useEffect(() => {
     let cancelled = false;
     fetchJson<EmailDetail>(`/api/emails/${emailId}`)
-      .then((data) => !cancelled && setEmail(data))
+      .then((data) => {
+        if (cancelled) return;
+        setEmail(data);
+        setOpenedAt(new Date());
+      })
       .catch((err) => !cancelled && setError(err.message));
     return () => {
       cancelled = true;
@@ -53,78 +63,96 @@ export function EmailReader({ emailId, onBack }: Props) {
   }
 
   const gmailLink = `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(user.email)}#all/${emailId}`;
+  const recipients = email ? recipientsLabel(email.to, user.email) : "";
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-        <button type="button" onClick={onBack} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 lg:hidden dark:hover:bg-zinc-800" aria-label="Back to list">
-          <ArrowLeft className="h-4 w-4" />
+      {/* Toolbar */}
+      <div className="flex h-12 shrink-0 items-center gap-1 px-2 sm:px-4">
+        <IconButton label="Back" onClick={onBack}>
+          <ArrowLeft className="h-5 w-5" />
+        </IconButton>
+        <span className="mx-1 h-5 w-px bg-black/10 dark:bg-white/10" />
+        <button
+          type="button"
+          onClick={findAppointments}
+          disabled={analyzing || !email}
+          className="inline-flex h-9 items-center gap-2 rounded-full bg-[#c2e7ff] px-4 text-sm font-medium text-[#001d35] transition-shadow hover:shadow-[0_1px_2px_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] disabled:opacity-60 dark:bg-blue-900 dark:text-blue-50"
+        >
+          {analyzing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          <span className="hidden sm:inline">Find appointments</span>
         </button>
-        <div className="ml-auto flex gap-2">
-          <button
-            type="button"
-            onClick={findAppointments}
-            disabled={analyzing || !email}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60"
-          >
-            {analyzing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Find appointments
-          </button>
-          <a href={gmailLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-            <ExternalLink className="h-4 w-4" />
-            <span className="hidden sm:inline">Open in Gmail</span>
-          </a>
+        <a href={gmailLink} target="_blank" rel="noopener noreferrer" title="Open in Gmail" aria-label="Open in Gmail" className="flex h-10 w-10 items-center justify-center rounded-full text-[#444746] hover:bg-black/[0.06] dark:text-zinc-300 dark:hover:bg-white/10">
+          <ExternalLink className="h-[18px] w-[18px]" />
+        </a>
+        <div className="ml-auto flex items-center gap-1 text-xs text-[#444746] dark:text-zinc-400">
+          {position && <span className="hidden px-2 tabular-nums sm:inline">{position.index.toLocaleString()} of {position.total.toLocaleString()}</span>}
+          <IconButton label="Newer" onClick={() => onPrevious?.()} disabled={!onPrevious}>
+            <ChevronLeft className="h-5 w-5" />
+          </IconButton>
+          <IconButton label="Older" onClick={() => onNext?.()} disabled={!onNext}>
+            <ChevronRight className="h-5 w-5" />
+          </IconButton>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {error && <p className="m-6 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">{error}</p>}
+        {error && <p className="m-6 rounded-lg bg-[#fce8e6] px-4 py-3 text-sm text-[#c5221f] dark:bg-red-950/50 dark:text-red-300">{error}</p>}
 
         {!email && !error && (
-          <div className="space-y-4 p-6">
-            <Skeleton className="h-7 w-3/4" />
-            <div className="flex gap-3"><Skeleton className="h-11 w-11 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/4" /></div></div>
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-4 w-full" />)}
+          <div className="space-y-5 px-4 py-5 sm:pl-[72px] sm:pr-14">
+            <Skeleton className="h-7 w-2/3" />
+            <div className="flex gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/5" /></div></div>
+            {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-4" />)}
           </div>
         )}
 
         {email && (
-          <article className="mx-auto max-w-3xl space-y-6 p-6">
-            <header className="space-y-4">
-              <div className="flex items-start gap-2">
-                <h1 className="flex-1 text-xl font-semibold leading-snug tracking-tight text-zinc-900 dark:text-zinc-50">{email.subject}</h1>
-                {email.important && <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"><Bookmark className="h-3 w-3 fill-current" />Important</span>}
-                {email.starred && <Star className="mt-1.5 h-4 w-4 fill-yellow-400 text-yellow-400" aria-label="Starred" />}
-              </div>
-              <div className="flex items-center gap-3">
-                <Avatar name={email.from.name} email={email.from.email} size="lg" />
-                <div className="min-w-0 flex-1 text-sm">
-                  <p className="truncate">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">{email.from.name}</span>{" "}
-                    {email.from.name !== email.from.email && <span className="text-zinc-500">&lt;{email.from.email}&gt;</span>}
-                  </p>
-                  <p className="truncate text-zinc-500">to {email.to || "me"}{email.cc && `, cc ${email.cc}`}</p>
-                </div>
-                <time className="shrink-0 text-xs text-zinc-500">{formatFullDate(email.date)}</time>
-              </div>
-            </header>
+          <article className="px-4 pb-10 pt-5 sm:pl-[72px] sm:pr-14">
+            {/* Subject with label chips */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="text-[22px] leading-7 text-[#1f1f1f] dark:text-zinc-50">{email.subject}</h1>
+              {email.important && <Bookmark className="h-5 w-5 -rotate-90 fill-[#f4b400] text-[#f4b400]" aria-label="Important" />}
+              {email.labels.map((label) => (
+                <span key={label} className="rounded bg-[#dde3ea] px-1.5 text-xs leading-5 text-[#444746] dark:bg-zinc-700 dark:text-zinc-200">{label}</span>
+              ))}
+            </div>
 
+            {/* Sender row */}
+            <div className="relative mt-5 flex items-start gap-3">
+              <div className="sm:absolute sm:-left-14"><Avatar name={email.from.name} email={email.from.email} size="lg" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">
+                  <span className="font-bold text-[#1f1f1f] dark:text-zinc-50">{email.from.name}</span>
+                  {email.from.name !== email.from.email && <span className="text-xs text-[#5f6368] dark:text-zinc-400"> &lt;{email.from.email}&gt;</span>}
+                </p>
+                <p className="truncate text-xs text-[#5f6368] dark:text-zinc-400">
+                  to {recipients || "me"}{email.cc && `, cc ${shortNames(email.cc)}`}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3 text-xs text-[#5f6368] dark:text-zinc-400">
+                <time className="hidden md:inline">{formatReaderDate(email.date, openedAt)}</time>
+                <Star className={`h-5 w-5 ${email.starred ? "fill-[#f4b400] text-[#f4b400]" : "text-[#c4c7c5] dark:text-zinc-600"}`} aria-label={email.starred ? "Starred" : undefined} />
+              </div>
+            </div>
+            <time className="mt-1 block text-xs text-[#5f6368] md:hidden dark:text-zinc-400">{formatReaderDate(email.date, openedAt)}</time>
+
+            {/* AI results */}
             {(appointments || analyzeError) && (
-              <section className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
-                <h2 className="flex items-center gap-1.5 text-sm font-semibold text-indigo-900 dark:text-indigo-200"><Sparkles className="h-4 w-4" />AI found in this email</h2>
-                {analyzeError && <p className="text-sm text-rose-600">{analyzeError}</p>}
+              <section className="mt-5 space-y-3 rounded-2xl bg-[#f2f6fc] p-4 dark:bg-zinc-800/60">
+                <h2 className="flex items-center gap-2 text-sm font-medium text-[#0b57d0] dark:text-blue-300"><Sparkles className="h-4 w-4" />Appointments found by AI</h2>
+                {analyzeError && <p className="text-sm text-[#c5221f]">{analyzeError}</p>}
                 {appointments?.length === 0 && <EmptyState icon={CalendarSearch} title="No appointments in this email" />}
-                {appointments && appointments.length > 0 && (
-                  <ul className="space-y-2">{appointments.map((item) => <AgendaCard key={item.id} item={item} showEmailLink={false} />)}</ul>
-                )}
+                {appointments && appointments.length > 0 && <ul className="space-y-2">{appointments.map((item) => <AgendaCard key={item.id} item={item} showEmailLink={false} />)}</ul>}
               </section>
             )}
 
-            <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-zinc-800 dark:text-zinc-200">
+            {/* Body */}
+            <div className="mt-6 whitespace-pre-wrap break-words text-sm leading-6 text-[#222] dark:text-zinc-200">
               {email.text ? (
                 splitLinks(email.text).map((segment, i) =>
                   segment.type === "link" ? (
-                    <a key={i} href={segment.value} target="_blank" rel="noopener noreferrer nofollow" className="text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:decoration-indigo-600 dark:text-indigo-400">
+                    <a key={i} href={segment.value} target="_blank" rel="noopener noreferrer nofollow" className="text-[#0b57d0] underline dark:text-blue-300">
                       {segment.value}
                     </a>
                   ) : (
@@ -132,19 +160,33 @@ export function EmailReader({ emailId, onBack }: Props) {
                   ),
                 )
               ) : (
-                <span className="text-zinc-500">This email has no text content.</span>
+                <span className="text-[#5f6368]">This message has no text content.</span>
               )}
             </div>
 
             {email.attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                {email.attachments.map((name, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
-                    <Paperclip className="h-3.5 w-3.5" />{name}
-                  </span>
-                ))}
+              <div className="mt-8 border-t border-[#f1f3f4] pt-4 dark:border-zinc-800">
+                <p className="mb-3 text-sm font-medium text-[#1f1f1f] dark:text-zinc-100">{email.attachments.length} attachment{email.attachments.length === 1 ? "" : "s"}</p>
+                <div className="flex flex-wrap gap-2">
+                  {email.attachments.map((name, i) => (
+                    <span key={i} className="inline-flex max-w-[220px] items-center gap-2 rounded-lg border border-[#dadce0] px-3 py-2 text-xs text-[#3c4043] dark:border-zinc-700 dark:text-zinc-300">
+                      <Paperclip className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{name}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* InboxAgenda is read-only, so replying happens in Gmail itself. */}
+            <div className="mt-8 flex flex-wrap gap-3">
+              {[{ label: "Reply in Gmail", icon: Reply }, { label: "Forward in Gmail", icon: Forward }].map(({ label, icon: Icon }) => (
+                <a key={label} href={gmailLink} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-[#747775] px-6 text-sm font-medium text-[#444746] hover:bg-black/[0.04] dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-white/5">
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </a>
+              ))}
+            </div>
           </article>
         )}
       </div>
