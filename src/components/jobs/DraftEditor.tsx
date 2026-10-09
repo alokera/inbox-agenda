@@ -1,11 +1,12 @@
 "use client";
 
-import { CircleCheck, Copy, ExternalLink, FileText, LoaderCircle, RotateCcw, Send, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { CircleCheck, Copy, ExternalLink, Eye, FileText, LoaderCircle, PenLine, RotateCcw, Send, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
 import { blobToBase64, loadSentApplications, previousApplicationsTo, recordSentApplication, type SentApplication, type StoredResume } from "@/lib/profile-store";
+import { toHtml, toPlainText } from "@/lib/rich-text";
 import { findPlaceholders } from "@/lib/templates";
 import type { JobAnalysis, JobProfile } from "@/lib/types";
 import { useMailbox, useUser } from "../UserContext";
@@ -50,6 +51,7 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
+  const [preview, setPreview] = useState(false);
   const [history, setHistory] = useState<SentApplication[]>([]);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
   }
 
   async function copyText() {
-    await navigator.clipboard.writeText(`Subject: ${values.subject}\n\n${values.body}`);
+    await navigator.clipboard.writeText(`Subject: ${values.subject}\n\n${toPlainText(values.body)}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -139,10 +141,22 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
         <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Subject</span>
         <input className={field} value={values.subject} onChange={(e) => set("subject", e.target.value)} />
       </label>
-      <label className="block space-y-1">
-        <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Message</span>
-        <textarea className={`${field} min-h-72 leading-6`} value={values.body} onChange={(e) => set("body", e.target.value)} />
-      </label>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Message</span>
+          <button type="button" onClick={() => setPreview((p) => !p)} className="inline-flex items-center gap-1 text-xs font-medium text-[#0b57d0] hover:underline dark:text-blue-300">
+            {preview ? <PenLine className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {preview ? "Edit" : "Preview"}
+          </button>
+        </div>
+        {preview ? (
+          // Safe: toHtml escapes all text before adding <strong>, <a> and <br>.
+          <div className="min-h-72 rounded-lg border border-[#c4c7c5] bg-white p-4 dark:border-zinc-700 dark:bg-white" dangerouslySetInnerHTML={{ __html: toHtml(values.body) }} />
+        ) : (
+          <textarea aria-label="Message" className={`${field} min-h-72 leading-6`} value={values.body} onChange={(e) => set("body", e.target.value)} />
+        )}
+        <p className="text-[11px] text-[#5f6368] dark:text-zinc-400">**text** is sent as bold, and links are clickable.</p>
+      </div>
 
       {placeholders.length > 0 && (
         <p className="flex items-start gap-2 rounded-lg bg-[#fef7e0] px-3 py-2 text-xs text-[#7a5c00] dark:bg-amber-950/40 dark:text-amber-300">

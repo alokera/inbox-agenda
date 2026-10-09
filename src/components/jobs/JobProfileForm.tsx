@@ -122,7 +122,16 @@ export function JobProfileForm() {
           />
         </Section>
 
-        <Section title="Signature">
+        <Section title="Experience paragraph" hint="Your go-to 2–3 sentences about your experience. Templates insert it as the main paragraph, and the AI uses it as a starting point.">
+          <textarea
+            className={`${input} min-h-28`}
+            placeholder="I have 4+ years of experience building full-stack web applications using React.js, Next.js, Node.js, TypeScript and SQL/NoSQL databases. …"
+            value={profile.pitch}
+            onChange={(e) => update("pitch", e.target.value)}
+          />
+        </Section>
+
+        <Section title="Signature" hint="Wrap text in **double asterisks** to make it bold, e.g. **Alok Upadhyay**.">
           <textarea className={`${input} min-h-28 font-mono text-[13px]`} value={profile.signature} onChange={(e) => update("signature", e.target.value)} placeholder={defaultSignature(profile)} />
           <button type="button" onClick={() => update("signature", defaultSignature(profile))} className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#0b57d0] hover:underline dark:text-blue-300">
             <WandSparkles className="h-4 w-4" />Generate from my details
