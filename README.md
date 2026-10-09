@@ -14,7 +14,7 @@ Plenty of appointments only ever exist as an email: the clinic's "your appointme
 - 👀 **Read-only** access to Gmail and Calendar: the app can't send, delete or change anything
 - 🤖 **AI extraction** with xAI Grok: title, time (relative dates resolved), location, meeting link, organizer, status (scheduled / rescheduled / cancelled), confidence
 - 🧩 **Smart merge**: matches email appointments against calendar events, collapses duplicate emails (confirmation + reminder), and flags **"Not in your calendar"**
-- 📥 **Mail views:** Important (Gmail's own ML-ranked importance), Inbox, Unread and Starred, with unread counts, Gmail search syntax (`from:amazon`, `has:attachment`…), paging and a reading pane
+- 📥 **Gmail-style mail client (read-only):** Inbox with Primary / Promotions / Social / Updates tabs, Starred, Important (Gmail's own ML-ranked importance), Sent, Drafts, All Mail, Spam and Trash, with unread counts, a collapsible sidebar, pill search with Gmail syntax (`from:amazon`, `has:attachment`…), "1–50 of N" paging, and a full message view with "3 of 50" navigation; the browser back button works through `?id=` / `?q=` / `?tab=` URLs
 - ✨ **"Find appointments"** on any open email: runs the AI on just that message
 - ⚡ **Live scan progress** streamed from the server
 - 🗓️ Agenda grouped **Today / Tomorrow / This week / Later**, with links to join the meeting, open the email, or open the calendar event
@@ -80,7 +80,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000 and sign in. You land on **Important**; open **Agenda** and click **Scan my inbox** to build your agenda.
+Open http://localhost:3000 and sign in. You land on your **Inbox**; open **Agenda** and click **Scan my inbox** to build your agenda.
 
 > Google shows a **"Google hasn't verified this app"** warning for apps in Testing mode. Click *Continue*. That's expected for a personal project.
 
