@@ -18,6 +18,9 @@ export interface FeedJob extends ScoredJob {
   status: JobStatus;
   foundAt: number;
   statusChangedAt: number;
+  /** Gmail thread of the application, once sent from InboxAgenda. */
+  threadId?: string;
+  repliedAt?: number;
 }
 
 const FEED_KEY = "jobs";
@@ -95,11 +98,11 @@ export async function setJobStatus(key: string, status: JobStatus): Promise<Feed
 }
 
 /** Records an application sent from InboxAgenda in the tracker (linking it to a feed job when there is one). */
-export async function trackSentApplication(entry: { jobKey?: string; title: string; company: string | null; to: string; messageId: string }): Promise<void> {
+export async function trackSentApplication(entry: { jobKey?: string; title: string; company: string | null; to: string; messageId: string; threadId?: string }): Promise<void> {
   const jobs = await loadFeed();
   const now = Date.now();
   if (entry.jobKey && jobs.some((j) => j.key === entry.jobKey)) {
-    await saveFeed(jobs.map((j) => (j.key === entry.jobKey ? { ...j, status: "applied", statusChangedAt: now } : j)));
+    await saveFeed(jobs.map((j) => (j.key === entry.jobKey ? { ...j, status: "applied", statusChangedAt: now, threadId: entry.threadId } : j)));
     return;
   }
   const job: FeedJob = {
@@ -117,6 +120,15 @@ export async function trackSentApplication(entry: { jobKey?: string; title: stri
     status: "applied",
     foundAt: now,
     statusChangedAt: now,
+    threadId: entry.threadId,
   };
   await saveFeed([job, ...jobs]);
+}
+
+/** Marks tracker jobs whose application thread got a reply. */
+export async function markReplied(replies: { threadId: string; at: number }[]): Promise<void> {
+  if (!replies.length) return;
+  const at = new Map(replies.map((r) => [r.threadId, r.at]));
+  const jobs = await loadFeed();
+  await saveFeed(jobs.map((j) => (j.threadId && at.has(j.threadId) && !j.repliedAt ? { ...j, repliedAt: at.get(j.threadId) } : j)));
 }

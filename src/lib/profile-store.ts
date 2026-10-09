@@ -107,6 +107,14 @@ export interface SentApplication {
   /** Gmail ids, to open the sent message. */
   messageId: string;
   threadId: string;
+  /** Sent by Autopilot without a manual click. */
+  auto?: boolean;
+  /** When a reply from someone else was detected. */
+  repliedAt?: number;
+  /** When Autopilot prepared a follow-up, so it's only prepared once. */
+  followUpQueuedAt?: number;
+  /** This email was itself a follow-up. */
+  isFollowUp?: boolean;
 }
 
 const SENT_KEY = "sent-applications";
@@ -136,4 +144,10 @@ export async function loadTemplates(): Promise<EmailTemplate[]> {
 
 export async function saveTemplates(templates: EmailTemplate[]): Promise<void> {
   await set(TEMPLATES_KEY, templates, store);
+}
+
+export async function updateSentApplications(update: (history: SentApplication[]) => SentApplication[]): Promise<SentApplication[]> {
+  const next = update(await loadSentApplications());
+  await set(SENT_KEY, next, store);
+  return next;
 }
