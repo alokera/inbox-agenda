@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApplicationPrompt, parseApplication } from "./application";
+import { buildApplicationPrompt, buildColdMessage, parseApplication } from "./application";
 import type { JobProfile } from "./types";
 
 const profile: JobProfile = {
@@ -79,5 +79,20 @@ describe("buildApplicationPrompt", () => {
 
   it("tells the model when there are no resumes", () => {
     expect(buildApplicationPrompt(profile, [])).toContain("(none uploaded");
+  });
+});
+
+describe("cold applications", () => {
+  it("uses the cold-email instructions and no Re: subject", () => {
+    const prompt = buildApplicationPrompt(profile, [], "cold");
+    expect(prompt).toMatch(/FIRST email/);
+    expect(prompt).toMatch(/No 'Re:'/);
+    expect(prompt).not.toMatch(/reply to ONE email/);
+  });
+
+  it("tells the model not to guess a company from a personal address", () => {
+    expect(buildColdMessage({ to: "recruiter.jane@gmail.com" })).toMatch(/personal email address, so don't guess/);
+    expect(buildColdMessage({ to: "jobs@acme.io" })).toContain("Company: (not given)");
+    expect(buildColdMessage({ to: "jobs@acme.io", company: "Acme", role: "Frontend Engineer", jobDescription: "React + TS" })).toContain("<job_description>\nReact + TS\n</job_description>");
   });
 });
