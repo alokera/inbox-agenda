@@ -90,3 +90,54 @@ export interface EmailDetail extends EmailSummary {
 }
 
 export type LabelCounts = Partial<Record<MailView, { total: number; unread: number }>>;
+
+/** The user's job-application details, stored only in their browser. */
+export interface JobProfile {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  headline: string;
+  portfolioUrl: string;
+  githubUrl: string;
+  linkedinUrl: string;
+  otherUrl: string;
+  /** Experience, key skills and projects in the user's own words; the AI uses only these facts. */
+  summary: string;
+  signature: string;
+  tone: "professional" | "friendly";
+}
+
+/** What the server/AI sees of a resume (never the PDF itself, except when attaching). */
+export interface ResumeSummary {
+  id: string;
+  label: string;
+  /** First part of the resume's text, so the AI can match it to the job. */
+  excerpt: string;
+}
+
+export interface JobAnalysis {
+  isJobOpportunity: boolean;
+  company: string | null;
+  role: string | null;
+  location: string | null;
+  skills: string[];
+  applyMethod: "reply" | "email" | "link" | "unknown";
+  applyEmail: string | null;
+  applyLink: string | null;
+  deadline: string | null;
+  asksFor: { resume: boolean; portfolio: boolean; github: boolean; coverLetter: boolean };
+  suggestedResumeId: string | null;
+  resumeReason: string | null;
+  subject: string;
+  body: string;
+}
+
+/** Original-message details needed to reply in the same Gmail thread. */
+export interface ReplyContext {
+  threadId: string;
+  messageId: string | null;
+  references: string | null;
+  replyTo: string;
+  subject: string;
+}

@@ -3,7 +3,7 @@ import { gmail, type gmail_v1 } from "@googleapis/gmail";
 import type { OAuth2Client } from "google-auth-library";
 import { mapWithConcurrency } from "./concurrency";
 import { decodeEntities, extractEmailText, getHeader, listAttachments, parseAddress } from "./email-text";
-import type { EmailCandidate, EmailDetail, EmailPage, EmailSummary, LabelCounts, MailCategory, MailView } from "./types";
+import type { EmailCandidate, EmailDetail, EmailPage, EmailSummary, LabelCounts, MailCategory, MailView, ReplyContext } from "./types";
 
 export const PAGE_SIZE = 50;
 const MAX_READER_CHARS = 100_000;
@@ -117,4 +117,26 @@ export async function getLabelCounts(auth: OAuth2Client): Promise<LabelCounts> {
     }),
   );
   return Object.fromEntries(entries);
+}
+
+/** Headers needed to reply in the same thread (Gmail threads replies by References + subject). */
+export async function getReplyContext(auth: OAuth2Client, id: string): Promise<ReplyContext> {
+  const api = gmail({ version: "v1", auth });
+  const { data } = await api.users.messages.get({ userId: "me", id, format: "metadata", metadataHeaders: ["Message-ID", "References", "Reply-To", "From", "Subject"] });
+  const payload = data.payload ?? {};
+  const replyTo = getHeader(payload, "Reply-To") || getHeader(payload, "From");
+  return {
+    threadId: data.threadId ?? id,
+    messageId: getHeader(payload, "Message-ID") || null,
+    references: getHeader(payload, "References") || null,
+    replyTo: parseAddress(replyTo).email,
+    subject: getHeader(payload, "Subject") || "",
+  };
+}
+
+/** Saves a draft (never sends). Returns the draft's message id, used to open it in Gmail. */
+export async function createDraft(auth: OAuth2Client, raw: string, threadId: string): Promise<{ draftId: string; messageId: string }> {
+  const api = gmail({ version: "v1", auth });
+  const { data } = await api.users.drafts.create({ userId: "me", requestBody: { message: { raw, threadId } } });
+  return { draftId: data.id!, messageId: data.message?.id ?? "" };
 }
