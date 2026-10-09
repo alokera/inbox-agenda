@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Briefcase, CalendarDays, File, Inbox, Mails, OctagonAlert, PenLine, Radar, Send, SquareKanban, Star, Trash, UserRound, type LucideIcon } from "lucide-react";
+import { Bookmark, Bot, Briefcase, CalendarDays, File, Inbox, Mails, OctagonAlert, PenLine, Radar, Send, SquareKanban, Star, Trash, UserRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LabelCounts, MailView } from "@/lib/types";
@@ -84,6 +84,7 @@ export function Sidebar({ collapsed, counts, onNavigate }: Props) {
 
       <SectionTitle collapsed={collapsed}>Job search</SectionTitle>
       <div className="space-y-px">
+        {renderItem({ href: "/autopilot", label: "Autopilot", icon: Bot })}
         {renderItem({ href: "/feed", label: "Job feed", icon: Radar })}
         {renderItem({ href: "/tracker", label: "Tracker", icon: SquareKanban })}
         {renderItem({ href: "/jobs", label: "Job emails", icon: Briefcase })}

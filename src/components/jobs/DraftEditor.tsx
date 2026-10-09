@@ -34,6 +34,10 @@ interface Props {
   /** Role/company the user typed, for the tracker when there's no AI analysis. */
   trackAs?: { role?: string; company?: string };
   onRegenerate?: () => void;
+  /** Called after a successful send (e.g. to remove a review-queue item). */
+  onSent?: (sent: { messageId: string; threadId: string }) => void;
+  /** Marks the sent email as a follow-up in the history. */
+  isFollowUp?: boolean;
 }
 
 interface Result {
@@ -45,7 +49,7 @@ interface Result {
  * Edit an application, then save it as a Gmail draft or send it (after confirmation).
  * Parents key this component by generation, so "Regenerate" starts from fresh values.
  */
-export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailId, jobKey, trackAs, onRegenerate }: Props) {
+export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailId, jobKey, trackAs, onRegenerate, onSent, isFollowUp }: Props) {
   const user = useUser();
   const { canDraft } = useMailbox();
   const pathname = usePathname();
@@ -92,14 +96,17 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
           sentAt: Date.now(),
           messageId: data.messageId,
           threadId: data.threadId ?? "",
+          isFollowUp,
         });
-        await trackSentApplication({
+        if (!isFollowUp) await trackSentApplication({
           jobKey,
           title: analysis?.role || trackAs?.role || values.subject,
           company: analysis?.company || trackAs?.company || null,
           to: values.to.trim(),
           messageId: data.messageId,
+          threadId: data.threadId,
         });
+        onSent?.({ messageId: data.messageId, threadId: data.threadId ?? "" });
       }
       setResult({ kind, messageId: data.messageId });
     } catch (err) {

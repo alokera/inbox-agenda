@@ -29,7 +29,7 @@ export function Tracker() {
 
   const tracked = (jobs ?? []).filter((j) => TRACKER_COLUMNS.some((c) => c.status === j.status));
   const applied = tracked.filter((j) => j.status !== "saved").length;
-  const responses = tracked.filter((j) => j.status === "interviewing" || j.status === "offer").length;
+  const responses = tracked.filter((j) => j.status === "interviewing" || j.status === "offer" || j.repliedAt).length;
 
   return (
     <div className="flex h-full flex-col">
@@ -37,7 +37,7 @@ export function Tracker() {
         <div className="flex-1">
           <h1 className="text-[22px] text-[#1f1f1f] dark:text-zinc-50">Tracker</h1>
           <p className="text-sm text-[#5f6368] dark:text-zinc-400">
-            {applied} applied · {responses} interviewing or offers{applied ? ` · ${Math.round((responses / applied) * 100)}% response rate` : ""}
+            {applied} applied · {responses} replied or interviewing{applied ? ` · ${Math.round((responses / applied) * 100)}% response rate` : ""}
           </p>
         </div>
       </header>
@@ -64,6 +64,7 @@ export function Tracker() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium leading-snug text-[#1f1f1f] dark:text-zinc-50">{job.title}</p>
                           <p className="truncate text-xs text-[#5f6368] dark:text-zinc-400">{[job.company, job.location].filter(Boolean).join(" · ") || job.snippet}</p>
+                          {job.repliedAt && <span className="mt-1 inline-block rounded-full bg-[#f3e8fd] px-2 py-0.5 text-[11px] font-medium text-[#8430ce] dark:bg-purple-950/50 dark:text-purple-300">Replied {new Date(job.repliedAt).toLocaleDateString([], { day: "numeric", month: "short" })}</span>}
                         </div>
                         {job.score !== undefined && <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${scoreTone(job.score)}`}>{job.score}</span>}
                       </div>

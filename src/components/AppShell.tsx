@@ -7,6 +7,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
 import type { SessionUser } from "@/lib/session";
 import type { LabelCounts } from "@/lib/types";
+import { AutopilotIndicator, AutopilotProvider } from "./autopilot/AutopilotProvider";
 import { AccountMenu } from "./shell/AccountMenu";
 import { SearchBar, SearchBarFallback } from "./shell/SearchBar";
 import { Sidebar } from "./shell/Sidebar";
@@ -68,6 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <UserContext.Provider value={user}>
       <MailboxContext.Provider value={{ counts, refreshCounts, canDraft }}>
+        <AutopilotProvider>
         <div className="flex h-dvh flex-col bg-[#f6f8fc] text-[#1f1f1f] dark:bg-zinc-950 dark:text-zinc-100">
           <header className="flex h-16 shrink-0 items-center gap-2 pl-2 pr-2 sm:pr-4">
             <button type="button" onClick={toggleMenu} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#444746] hover:bg-black/[0.06] dark:text-zinc-300 dark:hover:bg-white/10" aria-label="Main menu">
@@ -82,7 +84,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SearchBar />
               </Suspense>
             </div>
-            <div className="ml-auto pl-2">
+            <div className="ml-auto flex items-center gap-1 pl-2">
+              <AutopilotIndicator />
               <AccountMenu user={user} onSignOut={signOut} />
             </div>
           </header>
@@ -106,6 +109,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
+        </AutopilotProvider>
       </MailboxContext.Provider>
     </UserContext.Provider>
   );
