@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { defaultSignature, emptyProfile, loadProfile, loadResumes, saveProfile, saveResumes, type StoredResume } from "@/lib/profile-store";
 import type { JobProfile } from "@/lib/types";
 import { useUser } from "../UserContext";
+import { PreferencesEditor } from "./PreferencesEditor";
 import { TemplatesEditor } from "./TemplatesEditor";
 
 const MAX_RESUMES = 5;
@@ -200,6 +201,10 @@ export function JobProfileForm() {
           )}
           <input ref={fileInput} type="file" accept="application/pdf,.pdf" multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
           {uploadError && <p className="mt-2 text-sm text-[#c5221f]">{uploadError}</p>}
+        </Section>
+
+        <Section title="Job preferences" hint="What the Job feed looks for. Jobs matching the skip lists are dropped before scoring.">
+          <PreferencesEditor />
         </Section>
 
         <Section title="Email templates" hint="Used by “Write it myself” in New application. Edit the built-in ones or add your own.">

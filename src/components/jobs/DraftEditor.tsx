@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
 import { blobToBase64, loadSentApplications, previousApplicationsTo, recordSentApplication, type SentApplication, type StoredResume } from "@/lib/profile-store";
 import { toHtml, toPlainText } from "@/lib/rich-text";
+import { trackSentApplication } from "@/lib/job-store";
 import { findPlaceholders } from "@/lib/templates";
 import type { JobAnalysis, JobProfile } from "@/lib/types";
 import { useMailbox, useUser } from "../UserContext";
@@ -28,6 +29,10 @@ interface Props {
   analysis?: JobAnalysis | null;
   /** Set when replying to a job email, so the message goes into that thread. */
   replyToEmailId?: string;
+  /** The Job feed entry this application is for, so the tracker marks it Applied. */
+  jobKey?: string;
+  /** Role/company the user typed, for the tracker when there's no AI analysis. */
+  trackAs?: { role?: string; company?: string };
   onRegenerate?: () => void;
 }
 
@@ -40,7 +45,7 @@ interface Result {
  * Edit an application, then save it as a Gmail draft or send it (after confirmation).
  * Parents key this component by generation, so "Regenerate" starts from fresh values.
  */
-export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailId, onRegenerate }: Props) {
+export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailId, jobKey, trackAs, onRegenerate }: Props) {
   const user = useUser();
   const { canDraft } = useMailbox();
   const pathname = usePathname();
@@ -87,6 +92,13 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
           sentAt: Date.now(),
           messageId: data.messageId,
           threadId: data.threadId ?? "",
+        });
+        await trackSentApplication({
+          jobKey,
+          title: analysis?.role || trackAs?.role || values.subject,
+          company: analysis?.company || trackAs?.company || null,
+          to: values.to.trim(),
+          messageId: data.messageId,
         });
       }
       setResult({ kind, messageId: data.messageId });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Briefcase, CalendarDays, File, Inbox, Mails, OctagonAlert, PenLine, Send, Star, Trash, UserRound, type LucideIcon } from "lucide-react";
+import { Bookmark, Briefcase, CalendarDays, File, Inbox, Mails, OctagonAlert, PenLine, Radar, Send, SquareKanban, Star, Trash, UserRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LabelCounts, MailView } from "@/lib/types";
@@ -82,12 +82,20 @@ export function Sidebar({ collapsed, counts, onNavigate }: Props) {
 
       <div className="space-y-px">{MAIL_ITEMS.map(renderItem)}</div>
 
-      {collapsed ? <div className="mx-auto my-3 h-px w-8 bg-black/10 dark:bg-white/10" /> : <p className="mb-1 ml-[26px] mt-5 text-sm font-medium text-[#202124] dark:text-zinc-300">InboxAgenda</p>}
+      <SectionTitle collapsed={collapsed}>Job search</SectionTitle>
       <div className="space-y-px">
-        {renderItem({ href: "/agenda", label: "Agenda", icon: CalendarDays })}
+        {renderItem({ href: "/feed", label: "Job feed", icon: Radar })}
+        {renderItem({ href: "/tracker", label: "Tracker", icon: SquareKanban })}
         {renderItem({ href: "/jobs", label: "Job emails", icon: Briefcase })}
         {renderItem({ href: "/profile", label: "Job profile", icon: UserRound })}
       </div>
+
+      <SectionTitle collapsed={collapsed}>Planner</SectionTitle>
+      <div className="space-y-px">{renderItem({ href: "/agenda", label: "Agenda", icon: CalendarDays })}</div>
     </nav>
   );
+}
+
+function SectionTitle({ collapsed, children }: { collapsed: boolean; children: React.ReactNode }) {
+  return collapsed ? <div className="mx-auto my-3 h-px w-8 bg-black/10 dark:bg-white/10" /> : <p className="mb-1 ml-[26px] mt-5 text-sm font-medium text-[#202124] dark:text-zinc-300">{children}</p>;
 }

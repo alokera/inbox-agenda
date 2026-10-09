@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ChevronDown, ExternalLink, LoaderCircle, MailCheck, PenLine, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
 import { loadProfile, loadResumes, loadSentApplications, loadTemplates, toResumeSummaries, type SentApplication, type StoredResume } from "@/lib/profile-store";
@@ -26,13 +27,21 @@ const EMAIL = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/;
  */
 export function ComposeApplication() {
   const user = useUser();
+  // "Prepare application" in the Job feed opens this page with the job's details.
+  const params = useSearchParams();
+  const jobKey = params.get("jobKey") ?? undefined;
   const [profile, setProfile] = useState<JobProfile | null | undefined>(undefined);
   const [resumes, setResumes] = useState<StoredResume[]>([]);
   const [history, setHistory] = useState<SentApplication[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [templateId, setTemplateId] = useState("");
-  const [details, setDetails] = useState<Details>({ to: "", company: "", role: "", jobDescription: "" });
-  const [showMore, setShowMore] = useState(false);
+  const [details, setDetails] = useState<Details>(() => ({
+    to: params.get("to") ?? "",
+    company: params.get("company") ?? "",
+    role: params.get("role") ?? "",
+    jobDescription: params.get("jd") ?? "",
+  }));
+  const [showMore, setShowMore] = useState(() => Boolean(params.get("company") || params.get("role") || params.get("jd")));
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
@@ -174,6 +183,8 @@ export function ComposeApplication() {
               profile={profile}
               resumes={resumes}
               analysis={analysis}
+              jobKey={jobKey}
+              trackAs={{ role: details.role.trim(), company: details.company.trim() }}
               onRegenerate={analysis ? writeWithAI : undefined}
             />
             {writing && <p className="flex items-center gap-2 text-sm text-[#444746]"><LoaderCircle className="h-4 w-4 animate-spin" />Writing a new version…</p>}
