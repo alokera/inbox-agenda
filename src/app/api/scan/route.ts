@@ -5,6 +5,7 @@ import { findCandidateEmails } from "@/lib/gmail";
 import { getAuthorizedClient, NotSignedInError } from "@/lib/google";
 import { isLLMConfigured } from "@/lib/llm";
 import { mergeAgenda } from "@/lib/merge";
+import { isValidTimezone } from "@/lib/timezone";
 import type { ScanEvent } from "@/lib/types";
 
 // A scan reads up to 40 emails and makes one AI call per email.
@@ -21,7 +22,7 @@ const AI_CONCURRENCY = 5;
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const days = ALLOWED_DAYS.includes(body.days) ? (body.days as number) : 30;
-  const timezone = isValidTimezone(body.timezone) ? (body.timezone as string) : "UTC";
+  const timezone = isValidTimezone(body.timezone) ? body.timezone : "UTC";
 
   if (!isLLMConfigured()) return Response.json({ error: "XAI_API_KEY is not configured on the server." }, { status: 500 });
 
@@ -84,14 +85,4 @@ export async function POST(request: Request) {
   });
 
   return new Response(stream, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache" } });
-}
-
-function isValidTimezone(value: unknown): boolean {
-  if (typeof value !== "string" || value.length > 64) return false;
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractEmailText, getHeader, htmlToText, type MessagePart } from "./email-text";
+import { extractEmailText, getHeader, htmlToText, listAttachments, parseAddress, type MessagePart } from "./email-text";
 
 const b64 = (s: string) => Buffer.from(s).toString("base64url");
 
@@ -47,5 +47,23 @@ describe("getHeader", () => {
   it("is case-insensitive", () => {
     expect(getHeader({ headers: [{ name: "Subject", value: "Hello" }] }, "subject")).toBe("Hello");
     expect(getHeader({ headers: [] }, "From")).toBe("");
+  });
+});
+
+describe("parseAddress", () => {
+  it("parses quoted and unquoted display names", () => {
+    expect(parseAddress('"Asha Rao" <asha@example.com>')).toEqual({ name: "Asha Rao", email: "asha@example.com" });
+    expect(parseAddress("Amazon.in <order-update@amazon.in>")).toEqual({ name: "Amazon.in", email: "order-update@amazon.in" });
+  });
+  it("falls back to the address when there is no name", () => {
+    expect(parseAddress("<noreply@bank.com>")).toEqual({ name: "noreply@bank.com", email: "noreply@bank.com" });
+    expect(parseAddress("rohan@example.com")).toEqual({ name: "rohan", email: "rohan@example.com" });
+  });
+});
+
+describe("listAttachments", () => {
+  it("finds attachments in nested parts", () => {
+    const payload: MessagePart = { parts: [{ mimeType: "text/plain" }, { parts: [{ filename: "ticket.pdf" }, { filename: "invite.ics" }] }] };
+    expect(listAttachments(payload)).toEqual(["ticket.pdf", "invite.ics"]);
   });
 });

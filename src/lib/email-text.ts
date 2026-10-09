@@ -24,7 +24,7 @@ export function decodeBody(data: string | null | undefined): string {
  * Extracts readable text from a (possibly nested multipart) email.
  * Prefers text/plain; falls back to text/html converted to text.
  */
-export function extractEmailText(payload: MessagePart): string {
+export function extractEmailText(payload: MessagePart, maxChars = MAX_EMAIL_CHARS): string {
   const plain: string[] = [];
   const html: string[] = [];
 
@@ -37,7 +37,29 @@ export function extractEmailText(payload: MessagePart): string {
   walk(payload);
 
   const text = plain.join("\n").trim() || htmlToText(html.join("\n"));
-  return truncate(normalizeWhitespace(text), MAX_EMAIL_CHARS);
+  return truncate(normalizeWhitespace(text), maxChars);
+}
+
+/** File names of attachments anywhere in the message. */
+export function listAttachments(payload: MessagePart): string[] {
+  const names: string[] = [];
+  const walk = (part: MessagePart) => {
+    if (part.filename) names.push(part.filename);
+    part.parts?.forEach(walk);
+  };
+  walk(payload);
+  return names;
+}
+
+/** Parses `"Asha Rao" <asha@example.com>` (or a bare address) into name and email. */
+export function parseAddress(raw: string): { name: string; email: string } {
+  const match = raw.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  if (match) {
+    const email = match[2].trim();
+    return { name: match[1].trim() || email, email };
+  }
+  const email = raw.trim();
+  return { name: email.split("@")[0] || email, email };
 }
 
 export function htmlToText(html: string): string {
@@ -54,7 +76,7 @@ export function htmlToText(html: string): string {
   );
 }
 
-function decodeEntities(text: string): string {
+export function decodeEntities(text: string): string {
   const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
     if (entity[0] === "#") {

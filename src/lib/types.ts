@@ -46,3 +46,41 @@ export type ScanEvent =
   | { type: "progress"; done: number; total: number }
   | { type: "result"; items: AgendaItem[]; stats: ScanStats }
   | { type: "error"; message: string; signInAgain?: boolean };
+
+export type MailView = "inbox" | "important" | "unread" | "starred";
+
+export interface EmailAddress {
+  name: string;
+  email: string;
+}
+
+/** A row in the email list. */
+export interface EmailSummary {
+  id: string;
+  threadId: string;
+  from: EmailAddress;
+  subject: string;
+  snippet: string;
+  /** ISO 8601. */
+  date: string;
+  unread: boolean;
+  important: boolean;
+  starred: boolean;
+}
+
+export interface EmailPage {
+  emails: EmailSummary[];
+  nextPageToken: string | null;
+  /** Gmail's estimate, not exact. */
+  estimatedTotal: number;
+}
+
+/** A fully opened email. */
+export interface EmailDetail extends EmailSummary {
+  to: string;
+  cc: string;
+  text: string;
+  attachments: string[];
+}
+
+export type LabelCounts = Record<MailView, { total: number; unread: number }>;
