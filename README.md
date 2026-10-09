@@ -22,6 +22,8 @@ Plenty of appointments only ever exist as an email: the clinic's "your appointme
   3. It writes a tailored reply using **only facts from your profile** (no invented experience), with your portfolio, GitHub and LinkedIn links and signature.
   4. You edit it, then **Send** (after a confirmation showing recipient, subject and attachment) or **Save as draft**. Either way it goes out as a threaded reply with the resume PDF attached.
 - ✏️ **New application** (Gmail's Compose spot): when all you have is a recruiter's email address, type it (company, role and job description are optional), let AI write a first email from your profile, or pick a **template** (Standard, Short & direct, Fresher / internship, Follow-up, or your own) that's filled from your profile with no AI, then send. Sent applications are logged locally, and you're warned before emailing the same address twice.
+- 📡 **Job feed (automation, phase 1):** reads your **LinkedIn, Indeed and Naukri job-alert emails** (also Glassdoor, foundit, Instahyre, Wellfound), extracts every listing with AI, removes duplicates across alerts, drops jobs matching your skip lists, and **scores each job 0–100** against your profile and preferences, with reasons and concerns. Sorted by match, with Save / Hide / Mark applied / **Prepare application** (opens New application pre-filled). No job-site passwords: it only reads alert emails you already receive.
+- 🗂️ **Tracker:** Saved → Applied → Interviewing → Offer / Rejected, with response rate. Applications sent from InboxAgenda are added automatically.
 - 👤 **Job profile:** details, links, a summary, an experience paragraph, a signature (bold name, one detail per line), editable **email templates** (`{{company}}`, `{{role|fallback}}`, `{{links}}`…; you're warned before sending a leftover `[placeholder]`) and up to 5 labelled resume PDFs, stored **only in your browser** (IndexedDB); plus a **Job emails** view (a preset Gmail search for recruiter and hiring mail)
 - ⚡ **Live scan progress** streamed from the server
 - 🗓️ Agenda grouped **Today / Tomorrow / This week / Later**, with links to join the meeting, open the email, or open the calendar event
@@ -59,6 +61,8 @@ sequenceDiagram
 - **Minimal scopes.** `gmail.readonly` and `calendar.events.readonly`, plus `gmail.compose` for job applications (drafts and sending). Compose is optional: the app works without it and asks for it only when you first save or send an application. It sends only on an explicit, confirmed click.
 - **Formatted emails without an HTML editor.** You write `**bold**` and links in plain text. It's sent as `multipart/alternative` (HTML + plain-text fallback), with the HTML escaped first so nothing typed (or generated) can inject markup. The editor has a live Preview.
 - **Drafts are built by hand as MIME.** A `multipart/mixed` message with the text/HTML body and the PDF attachment, plus `In-Reply-To`/`References` headers and the `threadId`, so the draft lands in the same Gmail thread. Header values come partly from the browser, so CR/LF are stripped (no header injection), non-ASCII subjects are RFC 2047-encoded, and filenames are sanitised.
+- **Links the AI can't make up.** Before an alert email goes to the AI, every link is replaced by a short id (`[L3]`). The AI answers "this job's link is L3" and the app looks up the real URL, so a hallucinated or mangled URL can never reach the feed, and long tracking URLs don't cost tokens. URLs are then cleaned of tracking parameters (LinkedIn links become `linkedin.com/jobs/view/<id>/`) and jobs are de-duplicated by the site's own job id.
+- **Why alert emails instead of logging into job sites.** LinkedIn, Indeed and Naukri prohibit automated access and ban accounts for it, and have no public job-seeker APIs. Alert emails give the same listings with no passwords and no ban risk.
 - **Sending is deliberate.** Every send goes through a confirmation dialog, and earlier applications to the same address are flagged, using a local history stored only in the browser.
 - **Resumes stay in the browser.** PDFs live in IndexedDB. The server reads a PDF's text once (to let the AI compare resumes) and stores nothing. The chosen PDF is sent only when creating the draft.
 - **Pre-filter before AI.** A Gmail search (`newer_than:30d -category:promotions …` plus keywords like *appointment*, *interview*, *booking*, `filename:ics`) keeps cost and latency down. Only those candidates go to Grok.
@@ -112,6 +116,10 @@ Unit tests cover template filling (fallbacks, dropped lines, unfinished placehol
 ## Roadmap
 
 - [x] **v0.1:** Google sign-in, Gmail + Calendar read-only, mail views (Important / Inbox / Unread / Starred) with search and reader, AI extraction, merge + "missing from calendar", streamed progress
+- [x] **Job automation phase 1:** job feed from alert emails, AI match scores, tracker
+- [ ] **Job automation phase 2:** auto-apply by email (review queue → auto-send above a match threshold with a daily cap), reply detection, follow-ups
+- [ ] **Job automation phase 3:** background scans (Postgres + scheduler + TaskForge worker), Adzuna/Jooble APIs and company career pages, daily digest
+- [ ] **Job automation phase 4:** browser extension that fills application forms (you click Submit)
 - [ ] **v0.2:** Postgres (encrypted refresh tokens, extracted appointments), incremental sync via Gmail `historyId`, background scans with [TaskForge](https://github.com/alokera/taskforge), `.ics` attachment parsing
 - [ ] **v0.3:** One-click "Add to Google Calendar", daily digest email, "Am I free Friday afternoon?" chat, real-time updates via Gmail push notifications
 
