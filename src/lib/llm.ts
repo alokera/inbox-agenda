@@ -15,3 +15,6 @@ export function getLLMClient(): OpenAI {
 }
 
 export const LLM_MODEL = process.env.XAI_MODEL || "grok-4";
+
+/** Optional cheaper/faster model for bulk work (extracting and scoring many jobs). */
+export const LLM_FAST_MODEL = process.env.XAI_FAST_MODEL || LLM_MODEL;

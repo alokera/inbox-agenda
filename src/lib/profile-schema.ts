@@ -30,3 +30,13 @@ export const ResumeSummarySchema = z.object({
   label: z.string().trim().min(1).max(80),
   excerpt: z.string().max(2500),
 });
+
+export const PreferencesSchema = z.object({
+  roles: text(300),
+  locations: text(300),
+  remoteOk: z.boolean().catch(true),
+  experienceYears: text(40),
+  minSalary: text(60),
+  skipKeywords: text(500),
+  skipCompanies: text(500),
+});

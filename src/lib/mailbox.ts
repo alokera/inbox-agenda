@@ -2,7 +2,7 @@ import "server-only";
 import { gmail, type gmail_v1 } from "@googleapis/gmail";
 import type { OAuth2Client } from "google-auth-library";
 import { mapWithConcurrency } from "./concurrency";
-import { decodeEntities, extractEmailText, getHeader, listAttachments, parseAddress } from "./email-text";
+import { decodeEntities, extractEmailText, extractRawBodies, getHeader, listAttachments, parseAddress } from "./email-text";
 import type { EmailCandidate, EmailDetail, EmailPage, EmailSummary, LabelCounts, MailCategory, MailView, ReplyContext } from "./types";
 
 export const PAGE_SIZE = 50;
@@ -146,4 +146,24 @@ export async function sendMessage(auth: OAuth2Client, raw: string, threadId?: st
   const api = gmail({ version: "v1", auth });
   const { data } = await api.users.messages.send({ userId: "me", requestBody: { raw, threadId } });
   return { messageId: data.id ?? "", threadId: data.threadId ?? "" };
+}
+
+export interface AlertEmail {
+  id: string;
+  from: string;
+  subject: string;
+  html: string;
+  plain: string;
+}
+
+/** Job-alert emails matching `query`, newest first, skipping ones already processed. */
+export async function findAlertEmails(auth: OAuth2Client, query: string, skipIds: Set<string>, max: number): Promise<AlertEmail[]> {
+  const api = gmail({ version: "v1", auth });
+  const list = await api.users.messages.list({ userId: "me", q: query, maxResults: 100 });
+  const ids = (list.data.messages ?? []).map((m) => m.id!).filter((id) => id && !skipIds.has(id)).slice(0, max);
+  return mapWithConcurrency(ids, 6, async (id) => {
+    const { data } = await api.users.messages.get({ userId: "me", id, format: "full" });
+    const payload = data.payload ?? {};
+    return { id, from: getHeader(payload, "From"), subject: getHeader(payload, "Subject"), ...extractRawBodies(payload) };
+  });
 }

@@ -40,6 +40,20 @@ export function extractEmailText(payload: MessagePart, maxChars = MAX_EMAIL_CHAR
   return truncate(normalizeWhitespace(text), maxChars);
 }
 
+/** The raw HTML and plain-text bodies (no conversion), e.g. to keep links from job-alert emails. */
+export function extractRawBodies(payload: MessagePart): { html: string; plain: string } {
+  const html: string[] = [];
+  const plain: string[] = [];
+  const walk = (part: MessagePart) => {
+    if (part.filename) return;
+    if (part.mimeType === "text/html") html.push(decodeBody(part.body?.data));
+    else if (part.mimeType === "text/plain") plain.push(decodeBody(part.body?.data));
+    part.parts?.forEach(walk);
+  };
+  walk(payload);
+  return { html: html.join("\n"), plain: plain.join("\n") };
+}
+
 /** File names of attachments anywhere in the message. */
 export function listAttachments(payload: MessagePart): string[] {
   const names: string[] = [];

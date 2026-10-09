@@ -143,3 +143,45 @@ export interface ReplyContext {
   replyTo: string;
   subject: string;
 }
+
+/** What the user is looking for. Free text, comma-separated where it's a list. */
+export interface JobPreferences {
+  roles: string;
+  locations: string;
+  remoteOk: boolean;
+  experienceYears: string;
+  minSalary: string;
+  skipKeywords: string;
+  skipCompanies: string;
+}
+
+export type JobSource = "linkedin" | "indeed" | "naukri" | "glassdoor" | "foundit" | "instahyre" | "wellfound" | "email" | "other";
+
+/** A job found in an alert email, after AI extraction and link resolution. */
+export interface FoundJob {
+  key: string;
+  title: string;
+  company: string | null;
+  location: string | null;
+  salary: string | null;
+  experience: string | null;
+  url: string | null;
+  source: JobSource;
+  snippet: string | null;
+  posted: string | null;
+  alertEmailId: string;
+}
+
+export interface JobScore {
+  score: number;
+  reasons: string[];
+  concerns: string[];
+}
+
+export type ScoredJob = FoundJob & Partial<JobScore>;
+
+export type JobScanEvent =
+  | { type: "status"; message: string }
+  | { type: "progress"; done: number; total: number }
+  | { type: "result"; jobs: ScoredJob[]; processedEmailIds: string[]; stats: { alertEmails: number; jobsFound: number; skipped: number; scored: number } }
+  | { type: "error"; message: string; signInAgain?: boolean };
