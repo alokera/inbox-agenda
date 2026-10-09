@@ -1,6 +1,6 @@
 # InboxAgenda
 
-> Sign in with Google and AI finds the meetings, interviews, bookings and appointments hiding in your Gmail, merges them with your Google Calendar, and highlights the ones **missing from your calendar**.
+> Sign in with Google to browse your important email, and let AI find the meetings, interviews, bookings and appointments hiding in your Gmail, merged with your Google Calendar, with the ones **missing from your calendar** highlighted.
 
 <!-- Add a screenshot or GIF here: ![Demo](docs/demo.gif) -->
 
@@ -14,9 +14,11 @@ Plenty of appointments only ever exist as an email: the clinic's "your appointme
 - 👀 **Read-only** access to Gmail and Calendar: the app can't send, delete or change anything
 - 🤖 **AI extraction** with xAI Grok: title, time (relative dates resolved), location, meeting link, organizer, status (scheduled / rescheduled / cancelled), confidence
 - 🧩 **Smart merge**: matches email appointments against calendar events, collapses duplicate emails (confirmation + reminder), and flags **"Not in your calendar"**
+- 📥 **Mail views:** Important (Gmail's own ML-ranked importance), Inbox, Unread and Starred, with unread counts, Gmail search syntax (`from:amazon`, `has:attachment`…), paging and a reading pane
+- ✨ **"Find appointments"** on any open email: runs the AI on just that message
 - ⚡ **Live scan progress** streamed from the server
 - 🗓️ Agenda grouped **Today / Tomorrow / This week / Later**, with links to join the meeting, open the email, or open the calendar event
-- 🔒 **Nothing stored**: no database; emails are read, analysed and discarded within each scan
+- 🔒 **Nothing stored**: no database; emails are fetched from Gmail on demand and never saved
 
 ## How it works
 
@@ -51,6 +53,8 @@ sequenceDiagram
 - **Pre-filter before AI.** A Gmail search (`newer_than:30d -category:promotions …` plus keywords like *appointment*, *interview*, *booking*, `filename:ics`) keeps cost and latency down. Only those candidates go to Grok.
 - **Treat email as untrusted input.** An email could contain "ignore previous instructions…". The model is told the email is data, it can only *return JSON* (it has no tools or actions), every item is validated with Zod, invalid items are dropped individually, and only `https://` meeting links become clickable.
 - **Conservative matching.** An email appointment matches a calendar event only if it starts within 2 hours **and** shares a meaningful title word or the same meeting link. Time alone isn't enough: a 3pm dentist appointment must not be hidden by an unrelated 3pm standup.
+- **Emails rendered as text, not HTML.** The reader shows the plain-text version (or HTML converted to text) and turns `http(s)` URLs into links. Rendering raw email HTML would need sandboxing, and would load tracking pixels and remote content.
+- **"Important" comes from Gmail.** Gmail already ranks importance with its own models (the `IMPORTANT` label), so the app uses that instead of spending AI calls on every email. Opening an email doesn't mark it as read, because the app only has read-only access.
 - **Streaming progress.** `/api/scan` streams newline-delimited JSON events, so the UI shows "Reading your calendar… Searching email… Analysing 12/31…".
 
 ## Getting started
@@ -76,7 +80,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000, sign in, and click **Scan my inbox**.
+Open http://localhost:3000 and sign in. You land on **Important**; open **Agenda** and click **Scan my inbox** to build your agenda.
 
 > Google shows a **"Google hasn't verified this app"** warning for apps in Testing mode. Click *Continue*. That's expected for a personal project.
 
@@ -86,7 +90,7 @@ Open http://localhost:3000, sign in, and click **Scan my inbox**.
 npm test
 ```
 
-Unit tests cover email parsing (nested multipart, HTML-to-text, entities), validation of AI output (bad JSON, invalid items, unsafe links), the merge rules (matching, de-duplication, cancellations, past events), session encryption (tampering, wrong key, expiry) and agenda grouping.
+Unit tests cover email parsing (nested multipart, HTML-to-text, entities, sender addresses, attachments), safe link detection, date and avatar formatting, validation of AI output (bad JSON, invalid items, unsafe links), the merge rules (matching, de-duplication, cancellations, past events), session encryption (tampering, wrong key, expiry) and agenda grouping.
 
 ## Limitations & production notes
 
@@ -96,7 +100,7 @@ Unit tests cover email parsing (nested multipart, HTML-to-text, entities), valid
 
 ## Roadmap
 
-- [x] **v0.1:** Google sign-in, Gmail + Calendar read-only, AI extraction, merge + "missing from calendar", streamed progress
+- [x] **v0.1:** Google sign-in, Gmail + Calendar read-only, mail views (Important / Inbox / Unread / Starred) with search and reader, AI extraction, merge + "missing from calendar", streamed progress
 - [ ] **v0.2:** Postgres (encrypted refresh tokens, extracted appointments), incremental sync via Gmail `historyId`, background scans with [TaskForge](https://github.com/alokera/taskforge), `.ics` attachment parsing
 - [ ] **v0.3:** One-click "Add to Google Calendar", daily digest email, "Am I free Friday afternoon?" chat, real-time updates via Gmail push notifications
 
