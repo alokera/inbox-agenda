@@ -1,13 +1,54 @@
-/** Gmail-style list dates: time for today, "Oct 3" this year, "3 Oct 2024" otherwise. */
+/** Gmail-style list dates: "4:31 PM" today, "Oct 3" this year, "10/3/24" before that. */
 export function formatListDate(iso: string, now: Date): string {
   const date = new Date(iso);
   if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   if (date.getFullYear() === now.getFullYear()) return date.toLocaleDateString([], { month: "short", day: "numeric" });
-  return date.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+  return date.toLocaleDateString([], { day: "numeric", month: "numeric", year: "2-digit" });
 }
 
-export function formatFullDate(iso: string): string {
-  return new Date(iso).toLocaleString([], { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+/** "Thu, Oct 9, 2026, 4:31 PM (2 hours ago)", like Gmail's message header. */
+export function formatReaderDate(iso: string, now: Date): string {
+  const date = new Date(iso);
+  const absolute = date.toLocaleString([], { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  const relative = timeAgo(date, now);
+  return relative ? `${absolute} (${relative})` : absolute;
+}
+
+/** Relative time for the last month ("just now", "5 minutes ago", "3 days ago"), else empty. */
+export function timeAgo(date: Date, now: Date): string {
+  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 0) return "";
+  if (seconds < 60) return "just now";
+  const plural = (value: number, unit: string) => `${value} ${unit}${value === 1 ? "" : "s"} ago`;
+  if (seconds < 3600) return plural(Math.floor(seconds / 60), "minute");
+  if (seconds < 86_400) return plural(Math.floor(seconds / 3600), "hour");
+  const days = Math.floor(seconds / 86_400);
+  return days <= 30 ? plural(days, "day") : "";
+}
+
+/** Splits a raw address header on commas that aren't inside quoted names. */
+function splitAddresses(raw: string): string[] {
+  return raw
+    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function shortName(address: string): string {
+  const named = address.match(/^"?([^"<]+?)"?\s*</);
+  return named ? named[1].trim() : address.replace(/[<>]/g, "").split("@")[0];
+}
+
+/** Display names for an address list: `"Asha" <a@x.com>, b@y.com` → "Asha, b". */
+export function shortNames(raw: string): string {
+  return splitAddresses(raw).map(shortName).join(", ");
+}
+
+/** Gmail's "to me, Asha": the signed-in user's address becomes "me", listed first. */
+export function recipientsLabel(raw: string, myEmail: string): string {
+  const parts = splitAddresses(raw);
+  const isMe = (part: string) => part.toLowerCase().includes(myEmail.toLowerCase());
+  return [...(parts.some(isMe) ? ["me"] : []), ...parts.filter((p) => !isMe(p)).map(shortName)].join(", ");
 }
 
 /** Up to two initials for an avatar. */
