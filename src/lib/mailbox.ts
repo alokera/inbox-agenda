@@ -167,3 +167,48 @@ export async function findAlertEmails(auth: OAuth2Client, query: string, skipIds
     return { id, from: getHeader(payload, "From"), subject: getHeader(payload, "Subject"), ...extractRawBodies(payload) };
   });
 }
+
+export interface MessageSummary {
+  id: string;
+  threadId: string;
+  from: string;
+  subject: string;
+  date: string;
+  snippet: string;
+}
+
+/** Light summaries of messages matching `query`, skipping ids already handled. */
+export async function listMessageSummaries(auth: OAuth2Client, query: string, skipIds: Set<string>, max: number): Promise<MessageSummary[]> {
+  const api = gmail({ version: "v1", auth });
+  const list = await api.users.messages.list({ userId: "me", q: query, maxResults: 100 });
+  const ids = (list.data.messages ?? []).map((m) => m.id!).filter((id) => id && !skipIds.has(id)).slice(0, max);
+  return mapWithConcurrency(ids, 8, async (id) => {
+    const { data } = await api.users.messages.get({ userId: "me", id, format: "metadata", metadataHeaders: ["From", "Subject", "Date"] });
+    const payload = data.payload ?? {};
+    return {
+      id,
+      threadId: data.threadId ?? id,
+      from: getHeader(payload, "From"),
+      subject: getHeader(payload, "Subject"),
+      date: new Date(Number(data.internalDate ?? Date.now())).toISOString(),
+      snippet: decodeEntities(data.snippet ?? ""),
+    };
+  });
+}
+
+/** Messages in a thread after `sinceMs`, split into ones from me and from others (for reply detection). */
+export async function threadActivity(auth: OAuth2Client, threadId: string, myEmail: string, sinceMs: number): Promise<{ fromMe: boolean; fromOthers: { at: number; from: string; snippet: string } | null }> {
+  const api = gmail({ version: "v1", auth });
+  const { data } = await api.users.threads.get({ userId: "me", id: threadId, format: "metadata", metadataHeaders: ["From"] });
+  const me = myEmail.toLowerCase();
+  let fromMe = false;
+  let fromOthers: { at: number; from: string; snippet: string } | null = null;
+  for (const message of data.messages ?? []) {
+    const at = Number(message.internalDate ?? 0);
+    if (at <= sinceMs) continue;
+    const from = getHeader(message.payload ?? {}, "From");
+    if (from.toLowerCase().includes(me) || message.labelIds?.includes("SENT")) fromMe = true;
+    else fromOthers ??= { at, from, snippet: decodeEntities(message.snippet ?? "") };
+  }
+  return { fromMe, fromOthers };
+}

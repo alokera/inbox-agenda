@@ -1,8 +1,9 @@
 import "server-only";
+import { buildTriagePrompt, parseTriage, type Triage } from "./autopilot";
 import { buildScoringInput, buildScoringPrompt, EXTRACT_PROMPT, numberLinks, parseExtractedJobs, parseScores } from "./job-feed";
 import { getLLMClient, LLM_FAST_MODEL } from "./llm";
 import type { AlertEmail } from "./mailbox";
-import type { FoundJob, JobPreferences, JobProfile, JobScore } from "./types";
+import type { EmailCandidate, FoundJob, JobPreferences, JobProfile, JobScore } from "./types";
 
 async function completeJson(system: string, user: string): Promise<string> {
   const completion = await getLLMClient().chat.completions.create({
@@ -41,5 +42,16 @@ export async function scoreJobs(jobs: FoundJob[], profile: JobProfile, prefs: Jo
   } catch (error) {
     console.error("Job scoring failed:", error instanceof Error ? error.message : error);
     return new Map();
+  }
+}
+
+/** Cheap first pass for Autopilot: is this a job I can apply to by email, and how well does it fit? */
+export async function triageEmail(email: EmailCandidate, profile: JobProfile, prefs: JobPreferences): Promise<Triage | null> {
+  try {
+    const raw = await completeJson(buildTriagePrompt(profile, prefs), `From: ${email.from}\nSubject: ${email.subject}\nSent: ${email.date}\n<email>\n${email.text.slice(0, 5000)}\n</email>`);
+    return parseTriage(raw);
+  } catch (error) {
+    console.error(`Triage failed for ${email.id}:`, error instanceof Error ? error.message : error);
+    return null;
   }
 }
