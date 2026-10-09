@@ -20,7 +20,8 @@ Plenty of appointments only ever exist as an email: the clinic's "your appointme
   1. AI extracts the role, company, skills, deadline, how to apply and what they asked for.
   2. It picks the best of your resumes, with a reason.
   3. It writes a tailored reply using **only facts from your profile** (no invented experience), with your portfolio, GitHub and LinkedIn links and signature.
-  4. You edit it, then **Create Gmail draft** saves it as a threaded reply with the resume PDF attached. It never sends; you review and press Send in Gmail.
+  4. You edit it, then **Send** (after a confirmation showing recipient, subject and attachment) or **Save as draft**. Either way it goes out as a threaded reply with the resume PDF attached.
+- ✏️ **New application** (Gmail's Compose spot): when all you have is a recruiter's email address, type it (company, role and job description are optional), let AI write a first email from your profile, or write it yourself, then send. Sent applications are logged locally, and you're warned before emailing the same address twice.
 - 👤 **Job profile:** details, links, a summary, a signature and up to 5 labelled resume PDFs, stored **only in your browser** (IndexedDB); plus a **Job emails** view (a preset Gmail search for recruiter and hiring mail)
 - ⚡ **Live scan progress** streamed from the server
 - 🗓️ Agenda grouped **Today / Tomorrow / This week / Later**, with links to join the meeting, open the email, or open the calendar event
@@ -55,8 +56,9 @@ sequenceDiagram
 
 - **OAuth by hand instead of an auth library.** It keeps the flow visible: `state` stops forged callbacks, PKCE makes an intercepted code useless, `access_type=offline` returns a refresh token, and the ID token is verified to identify the user. Users can untick permissions on Google's consent screen, so granted scopes are checked.
 - **Tokens in an encrypted cookie, no database.** The session (tokens + profile) is AES-256-GCM encrypted (JWE) into an `httpOnly`, `SameSite=Lax` cookie. The browser can't read or alter it, and v0.1 needs no database. The access token is refreshed automatically when it's about to expire.
-- **Minimal scopes.** `gmail.readonly` and `calendar.events.readonly`, plus `gmail.compose` for job-application drafts. Compose is optional: the app works without it and asks for it only when you create a draft. Google's compose scope would also allow sending, but the app only ever calls `drafts.create`.
+- **Minimal scopes.** `gmail.readonly` and `calendar.events.readonly`, plus `gmail.compose` for job applications (drafts and sending). Compose is optional: the app works without it and asks for it only when you first save or send an application. It sends only on an explicit, confirmed click.
 - **Drafts are built by hand as MIME.** A `multipart/mixed` message with a base64 text part and the PDF attachment, plus `In-Reply-To`/`References` headers and the `threadId`, so the draft lands in the same Gmail thread. Header values come partly from the browser, so CR/LF are stripped (no header injection), non-ASCII subjects are RFC 2047-encoded, and filenames are sanitised.
+- **Sending is deliberate.** Every send goes through a confirmation dialog, and earlier applications to the same address are flagged, using a local history stored only in the browser.
 - **Resumes stay in the browser.** PDFs live in IndexedDB. The server reads a PDF's text once (to let the AI compare resumes) and stores nothing. The chosen PDF is sent only when creating the draft.
 - **Pre-filter before AI.** A Gmail search (`newer_than:30d -category:promotions …` plus keywords like *appointment*, *interview*, *booking*, `filename:ics`) keeps cost and latency down. Only those candidates go to Grok.
 - **Treat email as untrusted input.** An email could contain "ignore previous instructions…". The model is told the email is data, it can only *return JSON* (it has no tools or actions), every item is validated with Zod, invalid items are dropped individually, and only `https://` meeting links become clickable.
