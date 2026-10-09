@@ -86,10 +86,10 @@ export function JobProfileForm() {
       <form onSubmit={save} className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-8">
         <header className="space-y-1">
           <h1 className="text-[22px] text-[#1f1f1f] dark:text-zinc-50">Job profile</h1>
-          <p className="text-sm text-[#5f6368] dark:text-zinc-400">Set this up once. When you open a job email and click <strong>Draft application</strong>, AI writes a tailored reply from these details and attaches the right resume.</p>
+          <p className="text-sm text-[#5f6368] dark:text-zinc-400">Set this up once. Used by <strong>New application</strong> and by <strong>Draft application</strong> on job emails: AI writes a tailored email from these details and attaches the right resume.</p>
           <p className="flex items-start gap-2 pt-2 text-xs text-[#5f6368] dark:text-zinc-400">
             <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Saved only in this browser. When you draft an application, your profile and resume text are sent to xAI Grok to write it, and the chosen PDF is attached to the Gmail draft.
+            Saved only in this browser. When AI writes an application, your profile and resume text are sent to xAI Grok; the chosen PDF is attached only when you save a draft or send.
           </p>
         </header>
 

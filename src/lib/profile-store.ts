@@ -59,7 +59,7 @@ export async function saveResumes(resumes: StoredResume[]): Promise<void> {
 }
 
 export async function clearJobData(): Promise<void> {
-  await Promise.all([del(PROFILE_KEY, store), del(RESUMES_KEY, store)]);
+  await Promise.all([del(PROFILE_KEY, store), del(RESUMES_KEY, store), del("sent-applications", store)]);
 }
 
 /** What the AI gets to see of each resume. */
@@ -87,4 +87,36 @@ export function blobToBase64(blob: Blob): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(blob);
   });
+}
+
+/** An application the user sent from InboxAgenda (kept locally to warn about duplicates). */
+export interface SentApplication {
+  id: string;
+  to: string;
+  subject: string;
+  company: string | null;
+  role: string | null;
+  resumeLabel: string | null;
+  sentAt: number;
+  /** Gmail ids, to open the sent message. */
+  messageId: string;
+  threadId: string;
+}
+
+const SENT_KEY = "sent-applications";
+const MAX_SENT_HISTORY = 500;
+
+export async function loadSentApplications(): Promise<SentApplication[]> {
+  return (await get<SentApplication[]>(SENT_KEY, store)) ?? [];
+}
+
+export async function recordSentApplication(entry: SentApplication): Promise<void> {
+  const history = await loadSentApplications();
+  await set(SENT_KEY, [entry, ...history].slice(0, MAX_SENT_HISTORY), store);
+}
+
+/** Earlier applications to the same address, newest first. */
+export function previousApplicationsTo(history: SentApplication[], to: string): SentApplication[] {
+  const address = to.trim().toLowerCase();
+  return address ? history.filter((h) => h.to.toLowerCase() === address) : [];
 }

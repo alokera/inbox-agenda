@@ -1,16 +1,13 @@
 "use client";
 
-import { Briefcase, Building, CircleCheck, Clock, Copy, ExternalLink, FileText, Link2, LoaderCircle, MapPin, RotateCcw, ShieldCheck, Sparkles, TriangleAlert, X } from "lucide-react";
+import { Briefcase, Building, Clock, Link2, LoaderCircle, MapPin, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
-import { blobToBase64, loadProfile, loadResumes, toResumeSummaries, type StoredResume } from "@/lib/profile-store";
+import { loadProfile, loadResumes, toResumeSummaries, type StoredResume } from "@/lib/profile-store";
 import { replySubject } from "@/lib/ui-format";
 import type { JobAnalysis, JobProfile } from "@/lib/types";
-import { useMailbox, useUser } from "../UserContext";
-
-const MAX_ATTACH_BYTES = 3 * 1024 * 1024;
+import { DraftEditor, type DraftValues } from "./DraftEditor";
 
 interface AnalyzeResponse {
   analysis: JobAnalysis;
@@ -30,27 +27,16 @@ type Status =
  * a tailored reply from the user's profile, the best resume, and a Gmail draft.
  */
 export function ApplicationPanel({ emailId, onClose }: { emailId: string; onClose: () => void }) {
-  const user = useUser();
-  const { canDraft } = useMailbox();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>({ state: "loading" });
   const [profile, setProfile] = useState<JobProfile | null>(null);
   const [resumes, setResumes] = useState<StoredResume[]>([]);
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
-  const [to, setTo] = useState("");
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [resumeId, setResumeId] = useState<string>("");
-  const [creating, setCreating] = useState(false);
-  const [draftError, setDraftError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ messageId: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [initial, setInitial] = useState<DraftValues>({ to: "", subject: "", body: "", resumeId: "" });
+  // Bumped on every (re)generation so the editor starts from the new draft.
+  const [generation, setGeneration] = useState(0);
 
   const analyze = useCallback(async (p: JobProfile, list: StoredResume[]) => {
     setStatus({ state: "analyzing" });
-    setDraft(null);
-    setDraftError(null);
     try {
       const data = await fetchJson<AnalyzeResponse>("/api/applications/analyze", {
         method: "POST",
@@ -60,11 +46,14 @@ export function ApplicationPanel({ emailId, onClose }: { emailId: string; onClos
       const a = data.analysis;
       const recipient = a.applyMethod === "email" && a.applyEmail ? a.applyEmail : data.replyTo;
       setAnalysis(a);
-      setTo(recipient);
-      // Replying to the sender keeps the thread's subject; a new address gets the AI's application subject.
-      setSubject(recipient.toLowerCase() === data.replyTo.toLowerCase() && data.originalSubject ? replySubject(data.originalSubject) : a.subject);
-      setBody(a.body);
-      setResumeId(a.suggestedResumeId ?? list.find((r) => r.isDefault)?.id ?? "");
+      setInitial({
+        to: recipient,
+        // Replying to the sender keeps the thread's subject; a new address gets the AI's application subject.
+        subject: recipient.toLowerCase() === data.replyTo.toLowerCase() && data.originalSubject ? replySubject(data.originalSubject) : a.subject,
+        body: a.body,
+        resumeId: a.suggestedResumeId ?? list.find((r) => r.isDefault)?.id ?? "",
+      });
+      setGeneration((g) => g + 1);
       setStatus({ state: "ready" });
     } catch (err) {
       setStatus({ state: "error", message: err instanceof Error ? err.message : "Couldn't draft the application" });
@@ -84,39 +73,6 @@ export function ApplicationPanel({ emailId, onClose }: { emailId: string; onClos
       cancelled = true;
     };
   }, [analyze]);
-
-  const resume = resumes.find((r) => r.id === resumeId) ?? null;
-  const resumeTooBig = Boolean(resume && resume.size > MAX_ATTACH_BYTES);
-
-  async function createGmailDraft() {
-    setCreating(true);
-    setDraftError(null);
-    try {
-      const attachment = resume && !resumeTooBig ? { filename: resume.filename, base64: await blobToBase64(resume.file) } : null;
-      const result = await fetchJson<{ messageId: string }>("/api/applications/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailId, to, subject, body, fromName: profile?.fullName, attachment }),
-      });
-      setDraft(result);
-    } catch (err) {
-      setDraftError(err instanceof Error ? err.message : "Couldn't create the draft");
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function copyText() {
-    await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
-
-  const field = "w-full rounded-lg border border-[#c4c7c5] bg-white px-3 py-2 text-sm text-[#1f1f1f] outline-none focus:border-[#0b57d0] focus:ring-1 focus:ring-[#0b57d0] dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100";
-  // Re-runs Google sign-in to grant the draft permission, then returns to this email.
-  const currentPage = `${pathname}${searchParams.size ? `?${searchParams}` : ""}`;
-  const allowDraftsHref = `/api/auth/google?returnTo=${encodeURIComponent(currentPage)}`;
-  const openDraftLink = draft ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(user.email)}#drafts?compose=${draft.messageId}` : "";
 
   return (
     <section className="mt-5 overflow-hidden rounded-2xl border border-[#d3e3fd] bg-[#f8fafd] dark:border-blue-900/60 dark:bg-zinc-800/40">
@@ -150,7 +106,7 @@ export function ApplicationPanel({ emailId, onClose }: { emailId: string; onClos
           </div>
         )}
 
-        {status.state === "ready" && analysis && (
+        {status.state === "ready" && analysis && profile && (
           <>
             {/* What the AI understood about the job */}
             <div className="space-y-3 rounded-xl bg-white p-4 dark:bg-zinc-900">
@@ -192,85 +148,10 @@ export function ApplicationPanel({ emailId, onClose }: { emailId: string; onClos
               )}
             </div>
 
-            {/* The draft */}
-            <div className="space-y-3">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">To</span>
-                <input className={field} type="email" value={to} onChange={(e) => setTo(e.target.value)} />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Subject</span>
-                <input className={field} value={subject} onChange={(e) => setSubject(e.target.value)} />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Message</span>
-                <textarea className={`${field} min-h-72 leading-6`} value={body} onChange={(e) => setBody(e.target.value)} />
-              </label>
-
-              <div className="space-y-1">
-                <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Attach resume</span>
-                {resumes.length === 0 ? (
-                  <p className="text-sm text-[#5f6368] dark:text-zinc-400">No resumes yet. <Link href="/profile" className="font-medium text-[#0b57d0] hover:underline">Upload one in Job profile</Link>.</p>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 shrink-0 text-[#d93025]" />
-                      <select className={field} value={resumeId} onChange={(e) => setResumeId(e.target.value)}>
-                        <option value="">Don&apos;t attach a resume</option>
-                        {resumes.map((r) => (
-                          <option key={r.id} value={r.id}>{r.label}{r.id === analysis.suggestedResumeId ? " (AI pick)" : ""}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {analysis.resumeReason && resumeId === analysis.suggestedResumeId && (
-                      <p className="flex items-start gap-1.5 text-xs text-[#5f6368] dark:text-zinc-400"><Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-[#0b57d0]" />{analysis.resumeReason}</p>
-                    )}
-                    {resumeTooBig && <p className="text-xs text-[#c5221f]">This PDF is over 3 MB and can&apos;t be attached. Compress it or pick another.</p>}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            {draft ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#e6f4ea] p-4 text-sm text-[#137333] dark:bg-emerald-950/40 dark:text-emerald-300">
-                <CircleCheck className="h-5 w-5" />
-                <span className="flex-1">Draft saved in Gmail{resume && !resumeTooBig ? `, with ${resume.filename} attached` : ""}. Review it there and press Send.</span>
-                <a href={openDraftLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-[#137333] px-4 py-2 font-medium text-white hover:bg-[#0f5c29]">
-                  <ExternalLink className="h-4 w-4" />Open draft
-                </a>
-              </div>
-            ) : canDraft ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={createGmailDraft} disabled={creating || !to || !subject || !body || resumeTooBig} className="inline-flex items-center gap-2 rounded-full bg-[#0b57d0] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#0a4fbd] disabled:opacity-50">
-                  {creating && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                  Create Gmail draft
-                </button>
-                <ActionButton onClick={() => profile && analyze(profile, resumes)} icon={RotateCcw}>Regenerate</ActionButton>
-                <ActionButton onClick={copyText} icon={copied ? CircleCheck : Copy}>{copied ? "Copied" : "Copy text"}</ActionButton>
-              </div>
-            ) : (
-              <div className="space-y-2 rounded-xl bg-white p-4 text-sm text-[#444746] dark:bg-zinc-900 dark:text-zinc-300">
-                <p className="flex items-start gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#188038]" />To save this as a Gmail draft, allow InboxAgenda to create drafts. It never sends anything: you press Send in Gmail.</p>
-                <div className="flex flex-wrap gap-2">
-                  <a href={allowDraftsHref} className="inline-flex rounded-full bg-[#0b57d0] px-5 py-2 font-medium text-white hover:bg-[#0a4fbd]">Allow drafts</a>
-                  <ActionButton onClick={copyText} icon={copied ? CircleCheck : Copy}>{copied ? "Copied" : "Copy text instead"}</ActionButton>
-                </div>
-              </div>
-            )}
-            {draftError && <p className="text-sm text-[#c5221f]">{draftError}</p>}
+            <DraftEditor key={generation} initial={initial} profile={profile} resumes={resumes} analysis={analysis} replyToEmailId={emailId} onRegenerate={() => profile && analyze(profile, resumes)} />
           </>
         )}
       </div>
     </section>
-  );
-}
-
-function ActionButton({ onClick, icon: Icon, children }: { onClick: () => void; icon: typeof Copy; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-1.5 rounded-full border border-[#747775] px-4 py-2 text-sm font-medium text-[#0b57d0] hover:bg-[#0b57d0]/[0.04] dark:border-zinc-600 dark:text-blue-300">
-      <Icon className="h-4 w-4" />
-      {children}
-    </button>
   );
 }

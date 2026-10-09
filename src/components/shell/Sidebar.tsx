@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Briefcase, CalendarDays, File, Inbox, Mails, OctagonAlert, Send, Sparkles, Star, Trash, UserRound, type LucideIcon } from "lucide-react";
+import { Bookmark, Briefcase, CalendarDays, File, Inbox, Mails, OctagonAlert, PenLine, Send, Star, Trash, UserRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LabelCounts, MailView } from "@/lib/types";
@@ -65,18 +65,18 @@ export function Sidebar({ collapsed, counts, onNavigate }: Props) {
 
   return (
     <nav className={`flex h-full flex-col overflow-y-auto pb-4 transition-[width] duration-200 ${collapsed ? "w-[72px]" : "w-64"}`}>
-      {/* Gmail puts "Compose" here. InboxAgenda is read-only, so its main action is finding appointments. */}
+      {/* Gmail's "Compose" spot: here it composes a job application. */}
       <div className={`pb-4 pt-2 ${collapsed ? "px-2" : "pl-2"}`}>
         <Link
-          href="/agenda"
+          href="/apply"
           onClick={onNavigate}
-          title={collapsed ? "Find appointments" : undefined}
+          title={collapsed ? "New application" : undefined}
           className={`flex h-14 items-center rounded-2xl bg-[#c2e7ff] text-sm font-medium text-[#001d35] transition-shadow hover:shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] dark:bg-blue-900 dark:text-blue-50 ${
             collapsed ? "w-14 justify-center" : "w-fit gap-3 pl-4 pr-6"
           }`}
         >
-          <Sparkles className="h-5 w-5" />
-          {!collapsed && "Find appointments"}
+          <PenLine className="h-5 w-5" />
+          {!collapsed && "New application"}
         </Link>
       </div>
 
