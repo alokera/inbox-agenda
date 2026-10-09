@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [canDraft, setCanDraft] = useState(false);
   const [counts, setCounts] = useState<LabelCounts | null>(null);
   const [countsTick, setCountsTick] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -25,7 +26,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetch("/api/me")
       .then((res) => res.json())
-      .then((me: { user: SessionUser | null }) => (me.user ? setUser(me.user) : router.replace("/")))
+      .then((me: { user: SessionUser | null; canDraft?: boolean }) => {
+        if (!me.user) return router.replace("/");
+        setUser(me.user);
+        setCanDraft(Boolean(me.canDraft));
+      })
       .catch(() => router.replace("/"));
   }, [router]);
 
@@ -62,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <UserContext.Provider value={user}>
-      <MailboxContext.Provider value={{ counts, refreshCounts }}>
+      <MailboxContext.Provider value={{ counts, refreshCounts, canDraft }}>
         <div className="flex h-dvh flex-col bg-[#f6f8fc] text-[#1f1f1f] dark:bg-zinc-950 dark:text-zinc-100">
           <header className="flex h-16 shrink-0 items-center gap-2 pl-2 pr-2 sm:pr-4">
             <button type="button" onClick={toggleMenu} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#444746] hover:bg-black/[0.06] dark:text-zinc-300 dark:hover:bg-white/10" aria-label="Main menu">

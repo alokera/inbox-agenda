@@ -90,3 +90,9 @@ export function splitLinks(text: string): TextSegment[] {
   if (last < text.length) segments.push({ type: "text", value: text.slice(last) });
   return segments;
 }
+
+/** "Re: <subject>" for replies, without doubling an existing "Re:". */
+export function replySubject(subject: string): string {
+  const trimmed = subject.trim();
+  return /^re:/i.test(trimmed) ? trimmed : `Re: ${trimmed}`;
+}

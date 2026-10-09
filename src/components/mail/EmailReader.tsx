@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Bookmark, CalendarSearch, ChevronLeft, ChevronRight, ExternalLink, Forward, LoaderCircle, Paperclip, Reply, Sparkles, Star } from "lucide-react";
+import { ArrowLeft, Bookmark, Briefcase, CalendarSearch, ChevronLeft, ChevronRight, ExternalLink, Forward, LoaderCircle, Paperclip, Reply, Sparkles, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
 import { formatReaderDate, recipientsLabel, shortNames, splitLinks } from "@/lib/ui-format";
 import type { AgendaItem, EmailDetail } from "@/lib/types";
 import { AgendaCard } from "../agenda/AgendaCard";
+import { ApplicationPanel } from "../jobs/ApplicationPanel";
 import { Avatar } from "../ui/Avatar";
 import { EmptyState } from "../ui/EmptyState";
 import { IconButton } from "../ui/IconButton";
@@ -30,6 +31,7 @@ export function EmailReader({ emailId, position, onBack, onPrevious, onNext }: P
   const [appointments, setAppointments] = useState<AgendaItem[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +83,15 @@ export function EmailReader({ emailId, position, onBack, onPrevious, onNext }: P
         >
           {analyzing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           <span className="hidden sm:inline">Find appointments</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setApplying(true)}
+          disabled={!email}
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-[#747775] px-4 text-sm font-medium text-[#0b57d0] hover:bg-[#0b57d0]/[0.04] disabled:opacity-60 dark:border-zinc-600 dark:text-blue-300"
+        >
+          <Briefcase className="h-4 w-4" />
+          <span className="hidden sm:inline">Draft application</span>
         </button>
         <a href={gmailLink} target="_blank" rel="noopener noreferrer" title="Open in Gmail" aria-label="Open in Gmail" className="flex h-10 w-10 items-center justify-center rounded-full text-[#444746] hover:bg-black/[0.06] dark:text-zinc-300 dark:hover:bg-white/10">
           <ExternalLink className="h-[18px] w-[18px]" />
@@ -136,6 +147,8 @@ export function EmailReader({ emailId, position, onBack, onPrevious, onNext }: P
               </div>
             </div>
             <time className="mt-1 block text-xs text-[#5f6368] md:hidden dark:text-zinc-400">{formatReaderDate(email.date, openedAt)}</time>
+
+            {applying && <ApplicationPanel emailId={email.id} onClose={() => setApplying(false)} />}
 
             {/* AI results */}
             {(appointments || analyzeError) && (

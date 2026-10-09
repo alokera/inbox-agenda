@@ -51,10 +51,18 @@ interface PageNav {
  * Opening an email swaps the list for the reader in the same card, with `?id=` in the
  * URL so the browser's back button returns to the list.
  */
-export function MailView({ view }: { view: View }) {
+interface Props {
+  view: View;
+  /** A built-in search (e.g. "Job emails"), used when the URL has no ?q. */
+  preset?: { query: string; label: string };
+}
+
+export function MailView({ view, preset }: Props) {
   const params = useSearchParams();
   const { counts, refreshCounts } = useMailbox();
-  const query = params.get("q") ?? "";
+  const urlQuery = params.get("q");
+  const query = urlQuery ?? preset?.query ?? "";
+  const showingPreset = Boolean(preset && urlQuery === null);
   const selectedId = params.get("id");
   const tab = params.get("tab");
   const category: MailCategory | undefined = view === "inbox" && !query ? (isCategory(tab) ? tab : "primary") : undefined;
@@ -152,7 +160,11 @@ export function MailView({ view }: { view: View }) {
         <IconButton label="Refresh" onClick={refresh}>
           <RefreshCw className={`h-[18px] w-[18px] ${loading ? "animate-spin" : ""}`} />
         </IconButton>
-        {query && <span className="truncate px-2 text-sm text-[#444746] dark:text-zinc-300">Search results for <strong className="font-medium">&ldquo;{query}&rdquo;</strong></span>}
+        {showingPreset && preset ? (
+          <span className="truncate px-2 text-sm font-medium text-[#1f1f1f] dark:text-zinc-100">{preset.label}</span>
+        ) : (
+          query && <span className="truncate px-2 text-sm text-[#444746] dark:text-zinc-300">Search results for <strong className="font-medium">&ldquo;{query}&rdquo;</strong></span>
+        )}
         <div className="ml-auto flex items-center gap-1 text-xs text-[#444746] dark:text-zinc-400">
           {emails.length > 0 && (
             <span className="px-2 tabular-nums">
@@ -198,7 +210,7 @@ export function MailView({ view }: { view: View }) {
         )}
         {loading && <MailSkeleton />}
         {!loading && error?.key !== fetchKey && emails.length === 0 && (
-          <EmptyState icon={query ? Search : MailOpen} title={query ? "No messages matched your search" : EMPTY[view]} />
+          <EmptyState icon={query ? Search : MailOpen} title={showingPreset ? "No job emails found in the last 60 days" : query ? "No messages matched your search" : EMPTY[view]} />
         )}
         {!loading && emails.length > 0 && page && (
           <ul>

@@ -15,9 +15,11 @@ export function useUser(): SessionUser {
 interface Mailbox {
   counts: LabelCounts | null;
   refreshCounts: () => void;
+  /** Whether the user granted the Gmail draft permission (needed for job applications). */
+  canDraft: boolean;
 }
 
-export const MailboxContext = createContext<Mailbox>({ counts: null, refreshCounts: () => {} });
+export const MailboxContext = createContext<Mailbox>({ counts: null, refreshCounts: () => {}, canDraft: false });
 
 export function useMailbox(): Mailbox {
   return useContext(MailboxContext);

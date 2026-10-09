@@ -18,7 +18,7 @@ const ERRORS: Record<string, string> = {
 const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Sparkles, title: "AI finds appointments", text: "Meetings, interviews, bookings and doctor visits, pulled out of everyday emails." },
   { icon: TriangleAlert, title: "Spots what's missing", text: "Highlights appointments that never made it into your calendar." },
-  { icon: Bookmark, title: "Important mail first", text: "Your inbox, with the emails Gmail ranks as important a click away." },
+  { icon: Bookmark, title: "Apply in one click", text: "AI drafts a tailored reply with your links and the right resume attached." },
 ];
 
 export function Landing({ configured, error }: Props) {
@@ -79,7 +79,7 @@ export function Landing({ configured, error }: Props) {
           <div className="rounded-2xl bg-white/80 p-5 text-sm ring-1 ring-zinc-200 backdrop-blur dark:bg-zinc-900/80 dark:ring-zinc-800">
             <p className="mb-3 flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-100"><ShieldCheck className="h-4 w-4 text-emerald-600" />Your data</p>
             <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-              <Privacy icon={Lock}><strong className="font-medium text-zinc-800 dark:text-zinc-200">Read-only.</strong> InboxAgenda can&apos;t send, delete or change anything.</Privacy>
+              <Privacy icon={Lock}><strong className="font-medium text-zinc-800 dark:text-zinc-200">Never sends or deletes.</strong> It reads mail and calendar, and creates drafts only when you ask (job applications). You press Send in Gmail.</Privacy>
               <Privacy icon={Mail}>Emails are shown straight from Gmail. <strong className="font-medium text-zinc-800 dark:text-zinc-200">Nothing is stored.</strong></Privacy>
               <Privacy icon={Sparkles}>When scanning, likely appointment emails are sent to xAI Grok to extract the details.</Privacy>
               <Privacy icon={ShieldCheck}>Signing out revokes the app&apos;s access to your Google account.</Privacy>
