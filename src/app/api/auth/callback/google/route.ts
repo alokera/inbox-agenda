@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const { tokens } = await client.getToken({ code, codeVerifier: flow.codeVerifier });
 
     // Google lets users untick individual permissions on the consent screen.
+    // Gmail and Calendar read access are required; draft access (compose) is optional.
     const granted = new Set((tokens.scope ?? "").split(" "));
     if (!granted.has(GMAIL_SCOPE) || !granted.has(CALENDAR_SCOPE)) return home("missing_scopes");
 
@@ -32,9 +33,10 @@ export async function GET(request: Request) {
         accessToken: tokens.access_token!,
         refreshToken: tokens.refresh_token ?? undefined,
         expiresAt: tokens.expiry_date ?? Date.now() + 3600_000,
+        scopes: [...granted],
       },
     });
-    return home();
+    return Response.redirect(new URL(flow.returnTo ?? "/", url));
   } catch (error) {
     console.error("OAuth callback failed:", error);
     return home("oauth_failed");

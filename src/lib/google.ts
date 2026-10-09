@@ -2,10 +2,19 @@ import "server-only";
 import { OAuth2Client } from "google-auth-library";
 import { getSession, saveSession, type Session } from "./session";
 
-/** Read-only access to exactly what the app needs, nothing more. */
+/** Read access to mail and calendar, plus draft creation for job applications. */
 export const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events.readonly";
-export const SCOPES = ["openid", "email", "profile", GMAIL_SCOPE, CALENDAR_SCOPE];
+/**
+ * Needed to create drafts. Google's compose scope would also allow sending, but the
+ * app only ever calls drafts.create — the user reviews and presses Send in Gmail.
+ */
+export const GMAIL_COMPOSE_SCOPE = "https://www.googleapis.com/auth/gmail.compose";
+export const SCOPES = ["openid", "email", "profile", GMAIL_SCOPE, CALENDAR_SCOPE, GMAIL_COMPOSE_SCOPE];
+
+export function hasScope(session: Session, scope: string): boolean {
+  return session.tokens.scopes?.includes(scope) ?? false;
+}
 
 // Refresh a little early so a token can't expire in the middle of a scan.
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;

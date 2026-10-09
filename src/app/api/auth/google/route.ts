@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { CodeChallengeMethod } from "google-auth-library";
 import { createOAuthClient, isGoogleConfigured, SCOPES } from "@/lib/google";
+import { safeReturnTo } from "@/lib/return-to";
 import { saveOAuthState } from "@/lib/session";
 
 /**
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const client = createOAuthClient();
   const state = randomBytes(32).toString("base64url");
   const { codeVerifier, codeChallenge } = await client.generateCodeVerifierAsync();
-  await saveOAuthState({ state, codeVerifier });
+  await saveOAuthState({ state, codeVerifier, returnTo: safeReturnTo(new URL(request.url).searchParams.get("returnTo")) });
 
   const url = client.generateAuthUrl({
     scope: SCOPES,

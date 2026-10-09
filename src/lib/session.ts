@@ -20,6 +20,8 @@ export interface Session {
     refreshToken?: string;
     /** Epoch milliseconds. */
     expiresAt: number;
+    /** Scopes the user actually granted (they can untick some on Google's consent screen). */
+    scopes?: string[];
   };
 }
 
@@ -27,6 +29,8 @@ export interface Session {
 export interface OAuthFlowState {
   state: string;
   codeVerifier: string;
+  /** Same-site path to return to after sign-in (e.g. back to an email). */
+  returnTo?: string;
 }
 
 const secret = () => process.env.SESSION_SECRET ?? "";
