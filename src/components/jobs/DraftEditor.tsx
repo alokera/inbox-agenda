@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
 import { blobToBase64, loadSentApplications, previousApplicationsTo, recordSentApplication, type SentApplication, type StoredResume } from "@/lib/profile-store";
+import { findPlaceholders } from "@/lib/templates";
 import type { JobAnalysis, JobProfile } from "@/lib/types";
 import { useMailbox, useUser } from "../UserContext";
 
@@ -59,6 +60,7 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
   const resume = resumes.find((r) => r.id === values.resumeId) ?? null;
   const resumeTooBig = Boolean(resume && resume.size > MAX_ATTACH_BYTES);
   const earlier = previousApplicationsTo(history, values.to);
+  const placeholders = findPlaceholders(`${values.subject}\n${values.body}`);
   const ready = Boolean(values.to && values.subject && values.body) && !resumeTooBig;
 
   async function submit(kind: "draft" | "send") {
@@ -142,6 +144,13 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
         <textarea className={`${field} min-h-72 leading-6`} value={values.body} onChange={(e) => set("body", e.target.value)} />
       </label>
 
+      {placeholders.length > 0 && (
+        <p className="flex items-start gap-2 rounded-lg bg-[#fef7e0] px-3 py-2 text-xs text-[#7a5c00] dark:bg-amber-950/40 dark:text-amber-300">
+          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>Still to personalise: <strong className="font-medium">{placeholders.map((p) => p.slice(1, -1)).join("; ")}</strong></span>
+        </p>
+      )}
+
       <div className="space-y-1">
         <span className="text-xs font-medium text-[#444746] dark:text-zinc-300">Attach resume</span>
         {resumes.length === 0 ? (
@@ -193,6 +202,7 @@ export function DraftEditor({ initial, profile, resumes, analysis, replyToEmailI
           subject={values.subject}
           attachment={resume && !resumeTooBig ? resume.filename : null}
           duplicate={earlier.length > 0}
+          unfinished={placeholders.length > 0}
           sending={busy === "send"}
           onCancel={() => setConfirming(false)}
           onConfirm={() => submit("send")}
@@ -215,13 +225,14 @@ interface ConfirmProps {
   subject: string;
   attachment: string | null;
   duplicate: boolean;
+  unfinished: boolean;
   sending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
 /** Last check before an email leaves: sending can't be undone. */
-function ConfirmSend({ to, subject, attachment, duplicate, sending, onCancel, onConfirm }: ConfirmProps) {
+function ConfirmSend({ to, subject, attachment, duplicate, unfinished, sending, onCancel, onConfirm }: ConfirmProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && !sending && onCancel();
     document.addEventListener("keydown", onKey);
@@ -237,6 +248,7 @@ function ConfirmSend({ to, subject, attachment, duplicate, sending, onCancel, on
           <Row label="Subject" value={subject} />
           <Row label="Resume" value={attachment ?? "No attachment"} />
         </dl>
+        {unfinished && <p className="rounded-lg bg-[#fce8e6] px-3 py-2 text-xs font-medium text-[#c5221f] dark:bg-red-950/50 dark:text-red-300">The message still contains a [placeholder] to personalise.</p>}
         {duplicate && <p className="rounded-lg bg-[#fef7e0] px-3 py-2 text-xs text-[#7a5c00] dark:bg-amber-950/40 dark:text-amber-300">You&apos;ve emailed this address before.</p>}
         <p className="text-xs text-[#5f6368] dark:text-zinc-400">It&apos;s sent from your Gmail account right away and can&apos;t be unsent.</p>
         <div className="flex justify-end gap-2">

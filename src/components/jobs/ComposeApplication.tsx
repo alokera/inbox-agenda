@@ -4,7 +4,8 @@ import { ArrowLeft, ChevronDown, ExternalLink, LoaderCircle, MailCheck, PenLine,
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchJson } from "@/lib/client-api";
-import { loadProfile, loadResumes, loadSentApplications, toResumeSummaries, type SentApplication, type StoredResume } from "@/lib/profile-store";
+import { loadProfile, loadResumes, loadSentApplications, loadTemplates, toResumeSummaries, type SentApplication, type StoredResume } from "@/lib/profile-store";
+import { fillTemplate, templateValues, type EmailTemplate } from "@/lib/templates";
 import type { JobAnalysis, JobProfile } from "@/lib/types";
 import { Skeleton } from "../ui/Skeleton";
 import { useUser } from "../UserContext";
@@ -28,6 +29,8 @@ export function ComposeApplication() {
   const [profile, setProfile] = useState<JobProfile | null | undefined>(undefined);
   const [resumes, setResumes] = useState<StoredResume[]>([]);
   const [history, setHistory] = useState<SentApplication[]>([]);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [templateId, setTemplateId] = useState("");
   const [details, setDetails] = useState<Details>({ to: "", company: "", role: "", jobDescription: "" });
   const [showMore, setShowMore] = useState(false);
   const [writing, setWriting] = useState(false);
@@ -36,10 +39,12 @@ export function ComposeApplication() {
   const [draft, setDraft] = useState<{ values: DraftValues; generation: number } | null>(null);
 
   useEffect(() => {
-    Promise.all([loadProfile(), loadResumes(), loadSentApplications()]).then(([p, list, sent]) => {
+    Promise.all([loadProfile(), loadResumes(), loadSentApplications(), loadTemplates()]).then(([p, list, sent, saved]) => {
       setProfile(p?.fullName ? p : null);
       setResumes(list);
       setHistory(sent);
+      setTemplates(saved);
+      setTemplateId(saved[0]?.id ?? "");
     });
   }, []);
 
@@ -65,18 +70,15 @@ export function ComposeApplication() {
     }
   }
 
+  /** Fills the chosen template from the profile and whatever company/role was typed. No AI involved. */
   function writeMyself() {
-    if (!profile) return;
-    const role = details.role.trim();
+    const template = templates.find((t) => t.id === templateId) ?? templates[0];
+    if (!profile || !template) return;
+    const values = templateValues(profile, { company: details.company, role: details.role });
     setAnalysis(null);
     setDraft((d) => ({
       generation: (d?.generation ?? 0) + 1,
-      values: {
-        to: details.to.trim(),
-        subject: role ? `Application – ${role} – ${profile.fullName}` : `${profile.headline || "Job application"} – ${profile.fullName}`,
-        body: `Hi,\n\n\n\n${[profile.portfolioUrl && `Portfolio: ${profile.portfolioUrl}`, profile.githubUrl && `GitHub: ${profile.githubUrl}`, profile.linkedinUrl && `LinkedIn: ${profile.linkedinUrl}`].filter(Boolean).join("\n")}\n\n${profile.signature || profile.fullName}`,
-        resumeId: defaultResumeId,
-      },
+      values: { to: details.to.trim(), subject: fillTemplate(template.subject, values), body: fillTemplate(template.body, values), resumeId: defaultResumeId },
     }));
   }
 
@@ -141,10 +143,23 @@ export function ComposeApplication() {
                 {writing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {writing ? "Writing…" : "Write with AI"}
               </button>
-              <button type="button" onClick={writeMyself} disabled={!validTo || writing} className="inline-flex items-center gap-2 rounded-full border border-[#747775] px-5 py-2.5 text-sm font-medium text-[#0b57d0] hover:bg-[#0b57d0]/[0.04] disabled:opacity-50 dark:border-zinc-600 dark:text-blue-300">
-                <PenLine className="h-4 w-4" />Write it myself
-              </button>
+              <div className="inline-flex overflow-hidden rounded-full border border-[#747775] dark:border-zinc-600">
+                <button type="button" onClick={writeMyself} disabled={!validTo || writing || templates.length === 0} className="inline-flex items-center gap-2 py-2.5 pl-5 pr-3 text-sm font-medium text-[#0b57d0] hover:bg-[#0b57d0]/[0.04] disabled:opacity-50 dark:text-blue-300">
+                  <PenLine className="h-4 w-4" />Write it myself
+                </button>
+                <select
+                  aria-label="Template"
+                  value={templateId}
+                  onChange={(e) => setTemplateId(e.target.value)}
+                  className="border-l border-[#747775] bg-transparent py-2.5 pl-3 pr-2 text-sm text-[#444746] outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+                >
+                  {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
             </div>
+            <p className="text-xs text-[#5f6368] dark:text-zinc-400">
+              Templates are filled from your profile, with no AI. <Link href="/profile" className="text-[#0b57d0] hover:underline dark:text-blue-300">Edit templates</Link>
+            </p>
           </form>
         )}
 

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { defaultSignature, emptyProfile, loadProfile, loadResumes, saveProfile, saveResumes, type StoredResume } from "@/lib/profile-store";
 import type { JobProfile } from "@/lib/types";
 import { useUser } from "../UserContext";
+import { TemplatesEditor } from "./TemplatesEditor";
 
 const MAX_RESUMES = 5;
 const MAX_ATTACH_BYTES = 3 * 1024 * 1024;
@@ -190,6 +191,10 @@ export function JobProfileForm() {
           )}
           <input ref={fileInput} type="file" accept="application/pdf,.pdf" multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />
           {uploadError && <p className="mt-2 text-sm text-[#c5221f]">{uploadError}</p>}
+        </Section>
+
+        <Section title="Email templates" hint="Used by “Write it myself” in New application. Edit the built-in ones or add your own.">
+          <TemplatesEditor />
         </Section>
       </form>
     </div>
