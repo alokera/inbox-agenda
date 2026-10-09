@@ -21,8 +21,8 @@ Plenty of appointments only ever exist as an email: the clinic's "your appointme
   2. It picks the best of your resumes, with a reason.
   3. It writes a tailored reply using **only facts from your profile** (no invented experience), with your portfolio, GitHub and LinkedIn links and signature.
   4. You edit it, then **Send** (after a confirmation showing recipient, subject and attachment) or **Save as draft**. Either way it goes out as a threaded reply with the resume PDF attached.
-- ✏️ **New application** (Gmail's Compose spot): when all you have is a recruiter's email address, type it (company, role and job description are optional), let AI write a first email from your profile, or write it yourself, then send. Sent applications are logged locally, and you're warned before emailing the same address twice.
-- 👤 **Job profile:** details, links, a summary, a signature and up to 5 labelled resume PDFs, stored **only in your browser** (IndexedDB); plus a **Job emails** view (a preset Gmail search for recruiter and hiring mail)
+- ✏️ **New application** (Gmail's Compose spot): when all you have is a recruiter's email address, type it (company, role and job description are optional), let AI write a first email from your profile, or pick a **template** (Standard, Short & direct, Fresher / internship, Follow-up, or your own) that's filled from your profile with no AI, then send. Sent applications are logged locally, and you're warned before emailing the same address twice.
+- 👤 **Job profile:** details, links, a summary, a signature, editable **email templates** (`{{company}}`, `{{role|fallback}}`, `{{links}}`…; you're warned before sending a leftover `[placeholder]`) and up to 5 labelled resume PDFs, stored **only in your browser** (IndexedDB); plus a **Job emails** view (a preset Gmail search for recruiter and hiring mail)
 - ⚡ **Live scan progress** streamed from the server
 - 🗓️ Agenda grouped **Today / Tomorrow / This week / Later**, with links to join the meeting, open the email, or open the calendar event
 - 🔒 **Nothing stored**: no database; emails are fetched from Gmail on demand and never saved
@@ -100,7 +100,7 @@ Open http://localhost:3000 and sign in. You land on your **Inbox**; open **Agend
 npm test
 ```
 
-Unit tests cover MIME building (header injection, RFC 2047, attachments, threading), parsing the AI's application output (including resume ids it made up), safe post-login redirects, email parsing (nested multipart, HTML-to-text, entities, sender addresses, attachments), safe link detection, date and avatar formatting, validation of AI output (bad JSON, invalid items, unsafe links), the merge rules (matching, de-duplication, cancellations, past events), session encryption (tampering, wrong key, expiry) and agenda grouping.
+Unit tests cover template filling (fallbacks, dropped lines, unfinished placeholders), MIME building (header injection, RFC 2047, attachments, threading), parsing the AI's application output (including resume ids it made up), safe post-login redirects, email parsing (nested multipart, HTML-to-text, entities, sender addresses, attachments), safe link detection, date and avatar formatting, validation of AI output (bad JSON, invalid items, unsafe links), the merge rules (matching, de-duplication, cancellations, past events), session encryption (tampering, wrong key, expiry) and agenda grouping.
 
 ## Limitations & production notes
 
