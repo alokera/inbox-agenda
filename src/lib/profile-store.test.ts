@@ -14,7 +14,7 @@ describe("previousApplicationsTo", () => {
 describe("profile helpers", () => {
   it("builds a signature from the filled-in fields only", () => {
     const profile = { ...emptyProfile("Aalok Upadhyay", "a@x.com"), headline: "Full-stack developer", portfolioUrl: "https://aalok.dev" };
-    expect(defaultSignature(profile)).toBe("Best regards,\nAalok Upadhyay\nFull-stack developer\na@x.com\nhttps://aalok.dev");
+    expect(defaultSignature(profile)).toBe("Best regards,\n**Aalok Upadhyay**\nFull-stack developer\na@x.com\nPortfolio: https://aalok.dev");
   });
 
   it("only shares a resume excerpt with the AI", () => {

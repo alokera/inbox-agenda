@@ -104,6 +104,8 @@ export interface JobProfile {
   otherUrl: string;
   /** Experience, key skills and projects in the user's own words; the AI uses only these facts. */
   summary: string;
+  /** The user's go-to paragraph about their experience; templates insert it as {{pitch}}. */
+  pitch: string;
   signature: string;
   tone: "professional" | "friendly";
 }

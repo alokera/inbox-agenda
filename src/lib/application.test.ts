@@ -13,6 +13,7 @@ const profile: JobProfile = {
   linkedinUrl: "",
   otherUrl: "",
   summary: "Built a RAG app and a Redis job queue.",
+  pitch: "I have 4+ years of experience building full-stack web apps.",
   signature: "Best,\nAalok",
   tone: "professional",
 };
@@ -70,10 +71,12 @@ describe("buildApplicationPrompt", () => {
     const prompt = buildApplicationPrompt(profile, [{ id: "r1", label: "Frontend", excerpt: "React, Next.js" }]);
     expect(prompt).toContain("Portfolio: https://aalok.dev");
     expect(prompt).toContain("GitHub: https://github.com/alokera");
-    expect(prompt).not.toContain("LinkedIn:");
+    expect(prompt).not.toContain("LinkedIn: https"); // the profile has no LinkedIn URL
     expect(prompt).not.toContain("Phone:");
     expect(prompt).toContain("[id: r1] Frontend");
     expect(prompt).toMatch(/Never invent/);
+    expect(prompt).toContain("**Portfolio:** <url>");
+    expect(prompt).toContain("Experience paragraph they like to use:\nI have 4+ years");
     expect(prompt).toMatch(/untrusted data/);
   });
 

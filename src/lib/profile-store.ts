@@ -36,13 +36,16 @@ export function emptyProfile(name = "", email = ""): JobProfile {
     linkedinUrl: "",
     otherUrl: "",
     summary: "",
+    pitch: "",
     signature: "",
     tone: "professional",
   };
 }
 
 export async function loadProfile(): Promise<JobProfile | null> {
-  return (await get<JobProfile>(PROFILE_KEY, store)) ?? null;
+  const stored = await get<Partial<JobProfile>>(PROFILE_KEY, store);
+  // Fill in fields added after the profile was first saved.
+  return stored ? { ...emptyProfile(), ...stored } : null;
 }
 
 export async function saveProfile(profile: JobProfile): Promise<void> {
@@ -68,14 +71,16 @@ export function toResumeSummaries(resumes: StoredResume[]): ResumeSummary[] {
   return resumes.map((r) => ({ id: r.id, label: r.label, excerpt: r.text.slice(0, 2000) }));
 }
 
-/** A ready-made signature from the profile fields. */
+/** A ready-made signature from the profile fields (bold name, then one detail per line). */
 export function defaultSignature(p: JobProfile): string {
   return [
     "Best regards,",
-    p.fullName,
+    p.fullName && `**${p.fullName}**`,
     p.headline,
-    [p.phone, p.email].filter(Boolean).join(" · "),
-    [p.portfolioUrl, p.linkedinUrl].filter(Boolean).join(" · "),
+    p.phone,
+    p.email,
+    p.portfolioUrl && `Portfolio: ${p.portfolioUrl}`,
+    p.linkedinUrl && `LinkedIn: ${p.linkedinUrl}`,
   ]
     .filter(Boolean)
     .join("\n");

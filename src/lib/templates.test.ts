@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { emptyProfile } from "./profile-store";
 import { DEFAULT_TEMPLATES, fillTemplate, findPlaceholders, templateValues } from "./templates";
 
-const profile = { ...emptyProfile("Aalok Upadhyay", "aalok@example.com"), headline: "a full-stack developer", portfolioUrl: "https://aalok.dev", githubUrl: "https://github.com/alokera", signature: "Best,\nAalok" };
+const profile = {
+  ...emptyProfile("Alok Upadhyay", "alok@example.com"),
+  headline: "Full Stack Developer",
+  pitch: "I have 4+ years of experience building full-stack web applications.",
+  portfolioUrl: "https://aalok.dev",
+  githubUrl: "https://github.com/alokera",
+  signature: "Best regards,\n**Alok Upadhyay**",
+};
 
 describe("fillTemplate", () => {
   it("fills variables and uses fallbacks for empty ones", () => {
@@ -24,25 +31,44 @@ describe("fillTemplate", () => {
 });
 
 describe("default templates", () => {
-  it("produce a complete email from a profile, with links and signature", () => {
+  it("produce the standard format: intro, pitch, bold links, signature", () => {
     const values = templateValues(profile, { company: "Acme", role: "Frontend Engineer" });
-    const body = fillTemplate(DEFAULT_TEMPLATES[0].body, values);
-    expect(fillTemplate(DEFAULT_TEMPLATES[0].subject, values)).toBe("Application – Frontend Engineer – Aalok Upadhyay");
-    expect(body).toContain("apply for Frontend Engineer at Acme");
-    expect(body).toContain("Portfolio: https://aalok.dev\nGitHub: https://github.com/alokera");
-    expect(body.endsWith("Best,\nAalok")).toBe(true);
-    expect(body).not.toMatch(/\{\{/);
+    expect(fillTemplate(DEFAULT_TEMPLATES[0].subject, values)).toBe("Application – Frontend Engineer – Alok Upadhyay");
+    expect(fillTemplate(DEFAULT_TEMPLATES[0].body, values)).toBe(
+      [
+        "Hi,",
+        "",
+        "I'm Alok Upadhyay, and I'd like to apply for the Frontend Engineer role at Acme.",
+        "",
+        "I have 4+ years of experience building full-stack web applications.",
+        "",
+        "I've attached my resume for your consideration. You can explore my work here:",
+        "",
+        "**Portfolio:** https://aalok.dev",
+        "**GitHub:** https://github.com/alokera",
+        "",
+        "I'd welcome the opportunity to discuss how my experience and skills could contribute to your team. Thank you for your time and consideration.",
+        "",
+        "Best regards,",
+        "**Alok Upadhyay**",
+      ].join("\n"),
+    );
   });
 
-  it("read naturally when company, role and location are unknown", () => {
-    const values = templateValues(profile);
+  it("use the headline as the role and 'your company' when they aren't given", () => {
+    const body = fillTemplate(DEFAULT_TEMPLATES[0].body, templateValues(profile));
+    expect(body).toContain("apply for the Full Stack Developer role at your company.");
+  });
+
+  it("read naturally even with an almost empty profile", () => {
+    const values = templateValues(emptyProfile("Alok Upadhyay", "a@x.com"));
     for (const template of DEFAULT_TEMPLATES) {
       const body = fillTemplate(template.body, values);
-      expect(body).not.toMatch(/\{\{|\bat\s*\.|for\s*\./);
+      expect(body).not.toMatch(/\{\{|the\s+role|\bat\s*\./);
       expect(fillTemplate(template.subject, values)).not.toMatch(/\{\{|–\s*–/);
     }
-    // The introduction must survive missing details (a dropped line would lose the whole sentence).
-    expect(fillTemplate(DEFAULT_TEMPLATES[0].body, values)).toContain("I'm Aalok Upadhyay, a full-stack developer, and I'd like to apply for a developer role at your company.");
+    // Without a pitch, the standard template leaves a clear note to personalise.
+    expect(fillTemplate(DEFAULT_TEMPLATES[0].body, values)).toMatch(/\[Add 2–3 lines/);
   });
 });
 

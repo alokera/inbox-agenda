@@ -20,6 +20,7 @@ export const ProfileSchema = z.object({
   linkedinUrl: url,
   otherUrl: url,
   summary: text(4000),
+  pitch: text(1500),
   signature: text(600),
   tone: z.enum(["professional", "friendly"]).catch("professional"),
 });

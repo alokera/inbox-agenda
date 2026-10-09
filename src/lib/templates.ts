@@ -8,25 +8,27 @@ export interface EmailTemplate {
 }
 
 /** Fill-ins a template can use. `{{name|fallback}}` uses the fallback when the value is empty. */
-export const TEMPLATE_VARIABLES = ["name", "headline", "email", "phone", "location", "company", "role", "portfolio", "github", "linkedin", "links", "signature"] as const;
+export const TEMPLATE_VARIABLES = ["name", "headline", "email", "phone", "location", "company", "role", "pitch", "portfolio", "github", "linkedin", "links", "signature"] as const;
 
 export type TemplateVariable = (typeof TEMPLATE_VARIABLES)[number];
 
+/** Built-in templates. `**text**` is sent as bold; see rich-text.ts. */
 export const DEFAULT_TEMPLATES: EmailTemplate[] = [
   {
     id: "standard",
     name: "Standard application",
-    subject: "Application – {{role|Developer role}} – {{name}}",
+    subject: "Application – {{role|Developer}} – {{name}}",
     body: `Hi,
 
-I'm {{name}}, {{headline|a software developer}}, and I'd like to apply for {{role|a developer role}} at {{company|your company}}.
+I'm {{name}}, and I'd like to apply for the {{role|open}} role at {{company|your company}}.
 
-[Add 1–2 lines on why you're a good fit, e.g. a project or skill that matches the role.]
+{{pitch|[Add 2–3 lines about your experience and the skills that match this role.]}}
 
-I've attached my resume. You can see my work here:
+I've attached my resume for your consideration. You can explore my work here:
+
 {{links}}
 
-I'd welcome the chance to talk. Thank you for your time.
+I'd welcome the opportunity to discuss how my experience and skills could contribute to your team. Thank you for your time and consideration.
 
 {{signature}}`,
   },
@@ -36,7 +38,7 @@ I'd welcome the chance to talk. Thank you for your time.
     subject: "{{role|Job application}} – {{name}}",
     body: `Hi,
 
-I'm interested in {{role|opportunities}} at {{company|your company}}. I'm {{headline|a software developer}}, and my resume is attached.
+I'm {{name}}, and I'm interested in the {{role|open}} role at {{company|your company}}. My resume is attached.
 
 {{links}}
 
@@ -47,14 +49,15 @@ Happy to share more or jump on a call.
   {
     id: "fresher",
     name: "Fresher / internship",
-    subject: "Application for {{role|internship / entry-level role}} – {{name}}",
+    subject: "Application for {{role|Internship}} – {{name}}",
     body: `Dear Hiring Team,
 
-I'm {{name}}, {{headline|an aspiring software developer}}, and I'm excited to apply for {{role|an internship or entry-level role}} at {{company|your company}}.
+I'm {{name}}, and I'm excited to apply for the {{role|internship / entry-level}} role at {{company|your company}}.
 
-[Mention your degree or a project you built, and what you'd like to learn.]
+{{pitch|[Mention your degree or a project you built, and what you'd like to learn.]}}
 
-My resume is attached, and here are my projects:
+My resume is attached, and you can explore my projects here:
+
 {{links}}
 
 I'm a quick learner and would love the opportunity to contribute. Thank you for considering my application.
@@ -67,9 +70,10 @@ I'm a quick learner and would love the opportunity to contribute. Thank you for 
     subject: "Following up – {{role|my application}} – {{name}}",
     body: `Hi,
 
-I recently applied for {{role|a role}} at {{company|your company}} and wanted to follow up. I'm still very interested and would be glad to share anything else you need.
+I recently applied for the {{role|open}} role at {{company|your company}} and wanted to follow up. I'm still very interested and happy to share anything else you need.
 
-For reference, my resume is attached again, along with my work:
+For reference, my resume is attached again, and you can explore my work here:
+
 {{links}}
 
 Thank you for your time.
@@ -84,11 +88,12 @@ export interface TemplateContext {
 }
 
 export function templateValues(profile: JobProfile, context: TemplateContext = {}): Record<TemplateVariable, string> {
+  // Bold labels, one link per line.
   const links = [
-    profile.portfolioUrl && `Portfolio: ${profile.portfolioUrl}`,
-    profile.githubUrl && `GitHub: ${profile.githubUrl}`,
-    profile.linkedinUrl && `LinkedIn: ${profile.linkedinUrl}`,
-    profile.otherUrl && `More: ${profile.otherUrl}`,
+    profile.portfolioUrl && `**Portfolio:** ${profile.portfolioUrl}`,
+    profile.githubUrl && `**GitHub:** ${profile.githubUrl}`,
+    profile.linkedinUrl && `**LinkedIn:** ${profile.linkedinUrl}`,
+    profile.otherUrl && `**More:** ${profile.otherUrl}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -99,7 +104,9 @@ export function templateValues(profile: JobProfile, context: TemplateContext = {
     phone: profile.phone.trim(),
     location: profile.location.trim(),
     company: context.company?.trim() ?? "",
-    role: context.role?.trim() ?? "",
+    // No role typed? Your headline (e.g. "Full Stack Developer") is the best guess.
+    role: context.role?.trim() || profile.headline.trim(),
+    pitch: (profile.pitch ?? "").trim(),
     portfolio: profile.portfolioUrl.trim(),
     github: profile.githubUrl.trim(),
     linkedin: profile.linkedinUrl.trim(),
