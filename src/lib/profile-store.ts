@@ -1,4 +1,5 @@
 import { createStore, del, get, set } from "idb-keyval";
+import { DEFAULT_TEMPLATES, type EmailTemplate } from "./templates";
 import type { JobProfile, ResumeSummary } from "./types";
 
 /**
@@ -59,7 +60,7 @@ export async function saveResumes(resumes: StoredResume[]): Promise<void> {
 }
 
 export async function clearJobData(): Promise<void> {
-  await Promise.all([del(PROFILE_KEY, store), del(RESUMES_KEY, store), del("sent-applications", store)]);
+  await Promise.all([del(PROFILE_KEY, store), del(RESUMES_KEY, store), del("sent-applications", store), del("templates", store)]);
 }
 
 /** What the AI gets to see of each resume. */
@@ -119,4 +120,15 @@ export async function recordSentApplication(entry: SentApplication): Promise<voi
 export function previousApplicationsTo(history: SentApplication[], to: string): SentApplication[] {
   const address = to.trim().toLowerCase();
   return address ? history.filter((h) => h.to.toLowerCase() === address) : [];
+}
+
+const TEMPLATES_KEY = "templates";
+
+/** The user's email templates; the built-in ones until they edit or add any. */
+export async function loadTemplates(): Promise<EmailTemplate[]> {
+  return (await get<EmailTemplate[]>(TEMPLATES_KEY, store)) ?? DEFAULT_TEMPLATES;
+}
+
+export async function saveTemplates(templates: EmailTemplate[]): Promise<void> {
+  await set(TEMPLATES_KEY, templates, store);
 }
