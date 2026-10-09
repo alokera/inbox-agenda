@@ -134,9 +134,16 @@ export async function getReplyContext(auth: OAuth2Client, id: string): Promise<R
   };
 }
 
-/** Saves a draft (never sends). Returns the draft's message id, used to open it in Gmail. */
-export async function createDraft(auth: OAuth2Client, raw: string, threadId: string): Promise<{ draftId: string; messageId: string }> {
+/** Saves a draft. Returns the draft's message id, used to open it in Gmail. */
+export async function createDraft(auth: OAuth2Client, raw: string, threadId?: string): Promise<{ draftId: string; messageId: string }> {
   const api = gmail({ version: "v1", auth });
   const { data } = await api.users.drafts.create({ userId: "me", requestBody: { message: { raw, threadId } } });
   return { draftId: data.id!, messageId: data.message?.id ?? "" };
+}
+
+/** Sends a message now (only ever called after the user clicks Send and confirms). */
+export async function sendMessage(auth: OAuth2Client, raw: string, threadId?: string): Promise<{ messageId: string; threadId: string }> {
+  const api = gmail({ version: "v1", auth });
+  const { data } = await api.users.messages.send({ userId: "me", requestBody: { raw, threadId } });
+  return { messageId: data.id ?? "", threadId: data.threadId ?? "" };
 }
