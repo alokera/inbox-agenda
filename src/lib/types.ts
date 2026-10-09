@@ -47,7 +47,10 @@ export type ScanEvent =
   | { type: "result"; items: AgendaItem[]; stats: ScanStats }
   | { type: "error"; message: string; signInAgain?: boolean };
 
-export type MailView = "inbox" | "important" | "unread" | "starred";
+export type MailView = "inbox" | "starred" | "important" | "sent" | "drafts" | "all" | "spam" | "trash";
+
+/** Gmail's inbox tabs. */
+export type MailCategory = "primary" | "promotions" | "social" | "updates";
 
 export interface EmailAddress {
   name: string;
@@ -59,6 +62,8 @@ export interface EmailSummary {
   id: string;
   threadId: string;
   from: EmailAddress;
+  /** Raw To header (shown instead of the sender in Sent and Drafts). */
+  to: string;
   subject: string;
   snippet: string;
   /** ISO 8601. */
@@ -66,6 +71,8 @@ export interface EmailSummary {
   unread: boolean;
   important: boolean;
   starred: boolean;
+  /** User-visible system labels, e.g. ["Inbox"]. */
+  labels: string[];
 }
 
 export interface EmailPage {
@@ -77,10 +84,9 @@ export interface EmailPage {
 
 /** A fully opened email. */
 export interface EmailDetail extends EmailSummary {
-  to: string;
   cc: string;
   text: string;
   attachments: string[];
 }
 
-export type LabelCounts = Record<MailView, { total: number; unread: number }>;
+export type LabelCounts = Partial<Record<MailView, { total: number; unread: number }>>;
